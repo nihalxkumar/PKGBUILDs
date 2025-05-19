@@ -1,6 +1,6 @@
 # Maintainer: Nihal Kumar <2tv8xupqg at mozmail dot com>
 pkgname=contextpilot
-pkgver=0.0.9
+pkgver=0.9.0
 pkgrel=1
 pkgdesc="Analyze Git blame information, infer code context, and index your codebase for deep, fine-grained search and navigation."
 arch=('x86_64' 'aarch64')

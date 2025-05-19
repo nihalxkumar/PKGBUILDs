@@ -1,6 +1,6 @@
 pkgbase = contextpilot
 	pkgdesc = Analyze Git blame information, infer code context, and index your codebase for deep, fine-grained search and navigation.
-	pkgver = 0.0.9
+	pkgver = 0.9.0
 	pkgrel = 1
 	url = https://github.com/krshrimali/context-pilot-rs
 	arch = x86_64
@@ -13,7 +13,7 @@ pkgbase = contextpilot
 	provides = contextpilot
 	conflicts = contextpilot
 	replaces = context-pilot
-	source = contextpilot-0.0.9.tar.gz::https://github.com/krshrimali/context-pilot-rs/archive/v0.0.9.tar.gz
+	source = contextpilot-0.9.0.tar.gz::https://github.com/krshrimali/context-pilot-rs/archive/v0.9.0.tar.gz
 	sha256sums = SKIP
 
 pkgname = contextpilot
