@@ -7,7 +7,7 @@ arch=('any')
 url="https://github.com/rmaake1/terminal-rain-lightning"
 license=('MIT')
 depends=('python')
-makedepends=('git' 'python-setuptools' 'python-wheel')
+makedepends=('git' 'python-pip' 'python-setuptools' 'python-wheel' 'python-build' 'python-installer')
 source=("git+https://github.com/rmaake1/terminal-rain-lightning.git")
 sha256sums=('SKIP')
 
