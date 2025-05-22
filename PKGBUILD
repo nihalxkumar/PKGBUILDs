@@ -14,7 +14,7 @@ provides=("$pkgname")
 conflicts=("$pkgname")
 replaces=("context-pilot")
 source=("$pkgname-$pkgver.tar.gz::$url/archive/v$pkgver.tar.gz")
-sha256sums=('SKIP')
+sha256sums=('6c349e2ef1fb7a140e5b4120cc0c841717efb23375da7cb77d6c4336f53fac46')
 
 prepare() {
   cd "$srcdir/context-pilot-rs-$pkgver"

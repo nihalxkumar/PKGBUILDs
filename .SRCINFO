@@ -14,6 +14,6 @@ pkgbase = contextpilot
 	conflicts = contextpilot
 	replaces = context-pilot
 	source = contextpilot-0.9.0.tar.gz::https://github.com/krshrimali/context-pilot-rs/archive/v0.9.0.tar.gz
-	sha256sums = SKIP
+	sha256sums = 6c349e2ef1fb7a140e5b4120cc0c841717efb23375da7cb77d6c4336f53fac46
 
 pkgname = contextpilot
