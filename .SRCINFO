@@ -1,6 +1,6 @@
 pkgbase = contextpilot-git
 	pkgdesc = Analyze Git blame information, infer code context, and index your codebase for deep, fine-grained search and navigation.
-	pkgver = 0.0.7.r0.g123456
+	pkgver = 0.9.1.r0.gc4ac211
 	pkgrel = 1
 	url = https://github.com/krshrimali/context-pilot-rs
 	arch = x86_64

@@ -1,6 +1,6 @@
 # Maintainer: Nihal Kumar <2tv8xupqg at mozmail dot com>
 pkgname=contextpilot-git
-pkgver=0.0.7.r9.gc4ac211
+pkgver=0.9.1.r0.g917812a
 pkgrel=1
 pkgdesc="Analyze Git blame information, infer code context, and index your codebase for deep, fine-grained search and navigation."
 arch=('x86_64' 'aarch64')
@@ -24,15 +24,17 @@ pkgver() {
 prepare() {
   cd "$srcdir/context-pilot-rs"
   case "$CARCH" in
-  armv7h) target="armv7-unknown-linux-gnueabihf" ;;
-  aarch64) target="aarch64-unknown-linux-gnu" ;;
-  *) target="$CARCH-unknown-linux-gnu" ;;
+    armv7h) target="armv7-unknown-linux-gnueabihf" ;;
+    aarch64) target="aarch64-unknown-linux-gnu" ;;
+    *) target="$CARCH-unknown-linux-gnu" ;;
   esac
   cargo fetch --target "$target"
 }
 
 build() {
   cd "$srcdir/context-pilot-rs"
+  export RUSTUP_TOOLCHAIN=stable
+  export CARGO_TARGET_DIR="target"
   cargo build --release
 }
 
