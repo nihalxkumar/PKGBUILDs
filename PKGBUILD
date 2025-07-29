@@ -1,6 +1,6 @@
 # Maintainer: Nihal Kumar <2tv8xupqg at mozmail dot com>
 pkgname=contextpilot
-pkgver=0.9.1
+pkgver=0.9.2
 pkgrel=1
 pkgdesc="Analyze Git blame information, infer code context, and index your codebase for deep, fine-grained search and navigation."
 arch=('x86_64' 'aarch64')
@@ -14,7 +14,7 @@ provides=("$pkgname")
 conflicts=("$pkgname")
 replaces=("context-pilot")
 source=("$pkgname-$pkgver.tar.gz::$url/archive/v$pkgver.tar.gz")
-sha256sums=('09ee999241b9098ace60ffcfbb137d860b581919d513a1450455a9b02fe52a5d')
+sha256sums=('2e6fc7aea5df34075291e3ec93b7936f782237c8580a5cae7a8b716b8da4c9c3')
 
 prepare() {
   cd "$srcdir/context-pilot-rs-$pkgver"
