@@ -1,0 +1,14 @@
+[contextpilot]
+source = "github"
+github = "krshrimali/context-pilot-rs"
+
+[contextpilot-git]
+source = "git"
+git = "https://github.com/krshrimali/context-pilot-rs.git"
+use_commit = true
+branch = "main"
+
+[terminal-rain-lightning]
+source = "github"
+github = "rmaake1/terminal-rain-lightning"
+pypi = "terminal-rain-lightning"
