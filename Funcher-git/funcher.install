@@ -1,0 +1,71 @@
+#!/bin/bash
+
+post_install() {
+  echo ""
+  echo "==> Funcher has been installed successfully!"
+  echo ""
+  echo "IMPORTANT SETUP STEPS:"
+  echo ""
+  echo "1. Add your user to the input group for input-based animations:"
+  echo "   sudo usermod -aG input $USER"
+  echo "   Then logout and login again."
+  echo ""
+  echo "NOTE: The required video asset has been installed to /usr/share/funcher/assets/ and will be copied to your user config on first run."
+  echo ""
+  echo "3. For Sway users, add these lines to your Sway config:"
+  echo "   # Funcher setup"
+  echo "   for_window [title="mpv_preload"] floating enable, border none, resize set 1920 1080"
+  echo "   for_window [app_id="wofi"] floating enable, border none, move position 750 240"
+  echo "   exec /usr/share/funcher/mpv_startup.sh"
+  echo "   bindsym $mod+d exec funcher"
+  echo "   bindsym $mod+shift+d exec funcher -c ~/.config/funcher/wofi-run.json"
+  echo ""
+  echo "4. For Hyprland users, refer to the documentation for appropriate config."
+  echo ""
+  echo "USAGE:"
+  echo "   funcher                    # Run with default config"
+  echo "   funcher -c <config.json>   # Run with custom config"
+  echo "   funcher -k                 # Get input key codes"
+  echo ""
+  echo "Configuration files are in: ~/.config/funcher/"
+  echo "Documentation: /usr/share/doc/funcher/README.md"
+  echo ""
+}
+
+post_upgrade() {
+  echo ""
+  echo "==> Funcher has been upgraded!"
+  echo ""
+  echo "NOTE: Your user configuration in ~/.config/funcher/ is preserved."
+  echo "New example configs and assets are available in /usr/share/funcher/"
+  echo ""
+  echo "If you experience issues, you may need to:"
+  echo "1. Compare your configs with the new examples"
+  echo "2. Verify the video asset exists in ~/.config/funcher/assets/"
+  echo "3. Verify your user is still in the input group"
+  echo ""
+}
+
+pre_remove() {
+  Kill any running funcher processes
+
+  pkill -f "funcher" 2>/dev/null || true
+  pkill -f "mpv.*mpv_preload" 2>/dev/null || true
+  pkill -f "keyboard_listener" 2>/dev/null || true
+  Clean up temp files
+
+  rm -f /tmp/mpv_socket* /tmp/input_key.txt /tmp/anim_cooldown.lock /tmp/funcer_exit_* /tmp/last_key.txt 2>/dev/null || true
+}
+
+post_remove() {
+  echo ""
+  echo "==> Funcher has been removed."
+  echo ""
+  echo "Your user configuration in ~/.config/funcher/ has been preserved."
+  echo "Remove it manually if you no longer need it:"
+  echo "   rm -rf ~/.config/funcher/"
+  echo ""
+  echo "To remove your user from the input group (if no longer needed):"
+  echo "   sudo gpasswd -d $USER input"
+  echo ""
+}

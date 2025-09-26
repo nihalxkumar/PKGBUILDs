@@ -1,0 +1,149 @@
+# Maintainer: Nihal Kumar <2tv8xupqg at mozmail dot com>
+pkgname=funcher-git
+pkgver=r15.e989161
+pkgrel=1
+pkgdesc="Animated app launcher with mpv video playback and input-based animations for Wayland"
+arch=('x86_64' 'aarch64')
+url="https://github.com/Tong-ST/Funcher"
+license=('MIT')
+depends=('mpv' 'bc' 'jq' 'socat' 'libinput' 'systemd-libs' 'wofi')
+makedepends=('git' 'gcc' 'make' 'pkg-config')
+optdepends=('alacritty: terminal emulator for terminal-based apps'
+  'calcurse: calendar and scheduling application'
+  'ranger: terminal file manager'
+  'hyprland: alternative Wayland compositor'
+  'sway: Wayland compositor (recommended)')
+provides=('funcher')
+conflicts=('funcher')
+source=("git+https://github.com/Tong-ST/Funcher.git"
+  "pip-boy-vdo.tar.xz::https://github.com/Tong-ST/Funcher/releases/download/Prototype/pip-boy-vdo.tar.xz")
+sha256sums=('SKIP'
+  '7c54afd148eab0a1611686bf949f313b8edb957da9f641bc1e9fc1af09cb8883')
+install=funcher.install
+
+pkgver() {
+  cd "$srcdir/Funcher"
+  printf "r%s.%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short HEAD)"
+}
+
+prepare() {
+  cd "$srcdir/Funcher"
+
+  # Extract video asset
+  mkdir -p assets
+  if [ -f "$srcdir/pip-boy-vdo.tar.xz" ]; then
+    tar xfv "$srcdir/pip-boy-vdo.tar.xz" -C assets || {
+      echo "Error: Failed to extract video asset"
+      exit 1
+    }
+  else
+    echo "Warning: Video asset not found. Some features may not work."
+  fi
+
+  # Fix paths in scripts to use system paths
+  sed -i 's|$HOME/Funcher|/usr/share/funcher|g' funcher.sh
+  sed -i 's|MAIN_DIR=.*|MAIN_DIR=/usr/share/funcher|' funcher.sh
+
+  # Fix config paths to use user config directory
+  sed -i 's|CONFIG=$MAIN_DIR/config/config.json|CONFIG=${XDG_CONFIG_HOME:-$HOME/.config}/funcher/config.json|' funcher.sh
+
+  # Update mpv startup script paths
+  sed -i 's|$HOME/Funcher|/usr/share/funcher|g' mpv_startup.sh
+}
+
+build() {
+  cd "$srcdir/Funcher/scripts"
+  # Build the keyboard listener
+  make keyboard_listener
+}
+
+check() {
+  cd "$srcdir/Funcher"
+  # Basic syntax check for shell scripts
+  bash -n funcher.sh
+  bash -n mpv_startup.sh
+}
+
+package() {
+  cd "$srcdir/Funcher"
+
+  # Create directories
+  install -dm755 "$pkgdir/usr/bin"
+  install -dm755 "$pkgdir/usr/share/funcher"
+  install -dm755 "$pkgdir/usr/share/funcher/scripts"
+  install -dm755 "$pkgdir/usr/share/funcher/config"
+  install -dm755 "$pkgdir/usr/share/funcher/assets"
+  install -dm755 "$pkgdir/usr/share/doc/funcher"
+  install -dm755 "$pkgdir/usr/share/licenses/funcher"
+  install -dm755 "$pkgdir/usr/share/applications"
+
+  # Install main scripts
+  install -Dm755 funcher.sh "$pkgdir/usr/share/funcher/funcher.sh"
+  install -Dm755 mpv_startup.sh "$pkgdir/usr/share/funcher/mpv_startup.sh"
+  install -Dm755 scripts/keyboard_listener "$pkgdir/usr/share/funcher/scripts/keyboard_listener"
+  install -Dm644 scripts/Makefile "$pkgdir/usr/share/funcher/scripts/Makefile"
+
+  # Install config files
+  install -Dm644 config/*.json "$pkgdir/usr/share/funcher/config/"
+
+  # Install assets if they exist
+  if [ -f "assets/pip_1080p.mov" ]; then
+    install -Dm644 assets/pip_1080p.mov "$pkgdir/usr/share/funcher/assets/pip_1080p.mov"
+  fi
+
+  # Install documentation
+  install -Dm644 README.md "$pkgdir/usr/share/doc/funcher/README.md"
+  install -Dm644 LICENSE "$pkgdir/usr/share/licenses/funcher/LICENSE"
+
+  # Create wrapper script
+  cat >"$pkgdir/usr/bin/funcher" <<'EOF'
+#!/bin/bash
+# Funcher wrapper script
+
+# Check if user config exists, if not copy from system defaults
+CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/funcher"
+if [ ! -d "$CONFIG_DIR" ]; then
+    mkdir -p "$CONFIG_DIR"
+    if cp -r /usr/share/funcher/config/* "$CONFIG_DIR/"; then
+        echo "Funcher: Initialized user configuration in $CONFIG_DIR"
+    else
+        echo "Funcher: Warning - Failed to initialize user configuration in $CONFIG_DIR"
+    fi
+fi
+
+# Check if user assets exist, if not copy from system defaults
+ASSETS_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/funcher/assets"
+if [ ! -d "$ASSETS_DIR" ]; then
+    mkdir -p "$ASSETS_DIR"
+    if [ -d "/usr/share/funcher/assets" ] && cp -r /usr/share/funcher/assets/* "$ASSETS_DIR/"; then
+        echo "Funcher: Initialized user assets in $ASSETS_DIR"
+    else
+        echo "Funcher: Warning - Failed to initialize user assets in $ASSETS_DIR"
+    fi
+fi
+
+# Check if user is in input group
+if ! groups | grep -q '\binput\b'; then
+    echo "Warning: User is not in 'input' group. Input-based animations may not work."
+    echo "Run: sudo usermod -aG input $USER"
+    echo "Then logout and login again."
+fi
+
+# Execute the main script
+exec /usr/share/funcher/funcher.sh "$@"
+EOF
+  chmod 755 "$pkgdir/usr/bin/funcher"
+
+  # Create desktop entry directly in pkgdir
+  cat >"$pkgdir/usr/share/applications/funcher.desktop" <<'EOF'
+[Desktop Entry]
+Name=Funcher
+Comment=Animated app launcher with video effects
+Exec=funcher
+Icon=applications-multimedia
+Terminal=false
+Type=Application
+Categories=System;Utility;
+Keywords=launcher;animation;wayland;
+EOF
+}
