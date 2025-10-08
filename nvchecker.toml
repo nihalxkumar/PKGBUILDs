@@ -13,6 +13,10 @@ source = "github"
 github = "rmaake1/terminal-rain-lightning"
 pypi = "terminal-rain-lightning"
 
+[twmd-bin]
+source = "github"
+github = "mmpx12/twitter-media-downloader"
+
 [twitter-media-downloader-git]
 source = "github"
 github = "mmpx12/twitter-media-downloader"
