@@ -1,4 +1,4 @@
-# Maintainer: Your Name <your.email@example.com>
+# Maintainer: Nihal Kumar <2tv8xupqg at mozmail dot com>
 
 pkgname=twitter-media-downloader-git
 _pkgname=twitter-media-downloader
