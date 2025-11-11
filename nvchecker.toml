@@ -20,3 +20,7 @@ github = "mmpx12/twitter-media-downloader"
 [twitter-media-downloader-git]
 source = "github"
 github = "mmpx12/twitter-media-downloader"
+
+[smithery-cli]
+source = "github"
+github = "smithery-ai/cli"
