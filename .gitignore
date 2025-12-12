@@ -15,6 +15,11 @@
 # subfolders, e.g. source or built package trees, vcs
 */**/
 
+# exception: track workflows
+!.github/
+!.github/workflows/
+!.github/workflows/*.yml
+
 # backup files
 *~
 *.bak
