@@ -15,8 +15,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install libcurl development headers
-        run: apk add --no-cache curl-dev
+      - name: Install build dependencies
+        run: apk add --no-cache build-base curl-dev python3-dev
 
       - name: Install nvchecker
         run: pip install nvchecker
