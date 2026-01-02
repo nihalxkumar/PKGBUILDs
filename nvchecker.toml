@@ -24,3 +24,7 @@ github = "mmpx12/twitter-media-downloader"
 [smithery-cli]
 source = "github"
 github = "smithery-ai/cli"
+
+[relax-player]
+source = "github"
+github = "ebithril/relax-player"
