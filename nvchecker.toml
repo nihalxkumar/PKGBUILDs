@@ -28,3 +28,7 @@ github = "smithery-ai/cli"
 [relax-player]
 source = "github"
 github = "ebithril/relax-player"
+
+[onionspray]
+source = "gitlab"
+gitlab = "tpo/onion-services/onionspray"
