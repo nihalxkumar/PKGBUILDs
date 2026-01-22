@@ -29,6 +29,12 @@ github = "smithery-ai/cli"
 source = "github"
 github = "ebithril/relax-player"
 
+[onionmine-git]
+source = "gitlab"
+gitlab = "tpo/onion-services/onionmine"
+use_commit = true
+branch = "main"
+
 [onionspray]
 source = "gitlab"
 gitlab = "tpo/onion-services/onionspray"
