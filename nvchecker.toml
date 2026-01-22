@@ -17,9 +17,11 @@ pypi = "terminal-rain-lightning"
 source = "github"
 github = "mmpx12/twitter-media-downloader"
 
-[twitter-media-downloader-git]
+[twmd-git]
 source = "github"
 github = "mmpx12/twitter-media-downloader"
+use_commit = true
+branch = "main"
 
 [smithery-cli]
 source = "github"
@@ -42,3 +44,9 @@ branch = "main"
 [onionspray]
 source = "gitlab"
 gitlab = "tpo/onion-services/onionspray"
+
+[onionspray-git]
+source = "gitlab"
+gitlab = "tpo/onion-services/onionspray"
+use_commit = true
+branch = "main"
