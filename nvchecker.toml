@@ -27,6 +27,12 @@ branch = "main"
 source = "github"
 github = "smithery-ai/cli"
 
+[ensu-bin]
+source = "github"
+github = "ente-io/ente"
+prefix = "ensu-v"
+use_latest_release = true
+
 [relax-player]
 source = "github"
 github = "ebithril/relax-player"
