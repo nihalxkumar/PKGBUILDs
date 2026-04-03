@@ -21,7 +21,7 @@ github = "mmpx12/twitter-media-downloader"
 source = "github"
 github = "mmpx12/twitter-media-downloader"
 use_commit = true
-branch = "main"
+branch = "master"
 
 [smithery-cli]
 source = "github"
@@ -38,21 +38,23 @@ source = "github"
 github = "ebithril/relax-player"
 
 [onionmine]
-source = "gitlab"
-gitlab = "tpo/onion-services/onionmine"
+source = "git"
+git = "https://gitlab.torproject.org/tpo/onion-services/onionmine.git"
+tag_strip = "v"
 
 [onionmine-git]
-source = "gitlab"
-gitlab = "tpo/onion-services/onionmine"
+source = "git"
+git = "https://gitlab.torproject.org/tpo/onion-services/onionmine.git"
 use_commit = true
 branch = "main"
 
 [onionspray]
-source = "gitlab"
-gitlab = "tpo/onion-services/onionspray"
+source = "git"
+git = "https://gitlab.torproject.org/tpo/onion-services/onionspray.git"
+tag_strip = "v"
 
 [onionspray-git]
-source = "gitlab"
-gitlab = "tpo/onion-services/onionspray"
+source = "git"
+git = "https://gitlab.torproject.org/tpo/onion-services/onionspray.git"
 use_commit = true
 branch = "main"
