@@ -26,6 +26,7 @@ branch = "master"
 [smithery-cli]
 source = "github"
 github = "smithery-ai/cli"
+use_latest_release = true
 
 [ensu-bin]
 source = "github"
