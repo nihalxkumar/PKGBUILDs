@@ -27,7 +27,9 @@ jobs:
       - name: Check for version changes
         id: check
         run: |
-          if ! git diff --exit-code old_versions.txt; then
+          if git diff --quiet old_versions.txt; then
+            echo "No version changes detected"
+          else
             echo "UPDATES_FOUND=true" >> "$GITHUB_ENV"
             DIFF=$(git diff old_versions.txt)
             echo "DIFF<<EOF" >> "$GITHUB_ENV"
