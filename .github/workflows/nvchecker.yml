@@ -24,15 +24,27 @@ jobs:
       - name: Run nvchecker
         run: nvchecker -c nvchecker.toml
 
+      - name: Check for version changes
+        id: check
+        run: |
+          if ! git diff --exit-code old_versions.txt; then
+            echo "UPDATES_FOUND=true" >> "$GITHUB_ENV"
+            DIFF=$(git diff old_versions.txt)
+            echo "DIFF<<EOF" >> "$GITHUB_ENV"
+            echo "$DIFF" >> "$GITHUB_ENV"
+            echo "EOF" >> "$GITHUB_ENV"
+          fi
+
       - name: Create issue if updates available
-        if: failure()
+        if: env.UPDATES_FOUND == 'true'
         uses: actions/github-script@v7
         with:
           script: |
+            const diff = process.env.DIFF;
             github.rest.issues.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
               title: 'Package updates available',
-              body: 'nvchecker found new versions. Run `nvchecker -c nvchecker.toml` locally to see details.',
+              body: 'nvchecker detected updated versions:\n\n```diff\n' + diff + '\n```',
               labels: ['dependencies', 'automated']
             })

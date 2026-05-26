@@ -1,3 +1,7 @@
+[__config__]
+oldver = "old_versions.txt"
+newver = "old_versions.txt"
+
 [contextpilot]
 source = "github"
 github = "krshrimali/context-pilot-rs"
