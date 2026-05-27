@@ -26,16 +26,18 @@ jobs:
 
       - name: Check for version changes
         id: check
+        shell: python3
         run: |
-          if git diff --quiet old_versions.txt; then
-            echo "No version changes detected"
-          else
-            echo "UPDATES_FOUND=true" >> "$GITHUB_ENV"
-            DIFF=$(git diff old_versions.txt)
-            echo "DIFF<<EOF" >> "$GITHUB_ENV"
-            echo "$DIFF" >> "$GITHUB_ENV"
-            echo "EOF" >> "$GITHUB_ENV"
-          fi
+          import subprocess, os
+          r = subprocess.run(['git', 'diff', '--exit-code', 'old_versions.txt'], capture_output=True)
+          if r.returncode != 0:
+              env = os.environ['GITHUB_ENV']
+              with open(env, 'a') as f:
+                  f.write('UPDATES_FOUND=true\n')
+                  diff = subprocess.run(['git', 'diff', 'old_versions.txt'], capture_output=True, text=True).stdout
+                  f.write(f'DIFF<<EOF\n{diff}\nEOF\n')
+          else:
+              print('No version changes detected')
 
       - name: Create issue if updates available
         if: env.UPDATES_FOUND == 'true'
