@@ -12,9 +12,9 @@
       "revision": "ce18e9c76ba13eea57990990ba59a91e770aa7dd"
     },
     "ensu-bin": {
-      "version": "0.1.16",
-      "gitref": "refs/tags/ensu-v0.1.16",
-      "url": "https://github.com/ente-io/ente/releases/tag/ensu-v0.1.16"
+      "version": "0.1.17",
+      "gitref": "refs/tags/ensu-v0.1.17",
+      "url": "https://github.com/ente-io/ente/releases/tag/ensu-v0.1.17"
     },
     "onionmine": {
       "version": "1.1.0",
@@ -27,14 +27,14 @@
       "revision": "575207989e5b01747371ce02d3cf2829f3410af7"
     },
     "onionspray": {
-      "version": "v1.7.0",
-      "gitref": "refs/tags/v1.7.0",
-      "revision": "4410de3bfa203276e18e18ff3d995bf566b8a628"
+      "version": "v1.8.0",
+      "gitref": "refs/tags/v1.8.0",
+      "revision": "ebf8016a2423328f66fefe605e667e293f3133dd"
     },
     "onionspray-git": {
-      "version": "cae3fe76a5806b59528b05333c248da1c1bdc522",
+      "version": "521797f21a4d296a701b35327ac32e7c493ff66d",
       "gitref": "refs/heads/main",
-      "revision": "cae3fe76a5806b59528b05333c248da1c1bdc522"
+      "revision": "521797f21a4d296a701b35327ac32e7c493ff66d"
     },
     "relax-player": {
       "version": "20260105.075002",
@@ -42,9 +42,9 @@
       "url": "https://github.com/ebithril/relax-player/commit/6d3b48ad99cb5c201e3631c6d78bf91f9e0397a5"
     },
     "smithery-cli": {
-      "version": "v1.1.1",
-      "gitref": "refs/tags/v1.1.1",
-      "url": "https://github.com/smithery-ai/cli/releases/tag/v1.1.1"
+      "version": "v1.2.0",
+      "gitref": "refs/tags/v1.2.0",
+      "url": "https://github.com/smithery-ai/cli/releases/tag/v1.2.0"
     },
     "terminal-rain-lightning": {
       "version": "20260430.205237",
