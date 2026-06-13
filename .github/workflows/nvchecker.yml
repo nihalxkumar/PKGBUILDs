@@ -46,7 +46,7 @@ jobs:
             done < /tmp/diff_output.txt
             echo "PACKAGES=${pkgs}" >> "$GITHUB_OUTPUT"
             for pkg in $(echo "$pkgs" | tr ',' ' '); do
-              ver=$(grep -A5 "\"${pkg}\":" /tmp/diff_output.txt | grep '"version"' | tail -1 | sed 's/.*"version": *"//;s>".*//')
+              ver=$(grep -A5 "\"${pkg}\":" /tmp/diff_output.txt | grep '"version"' | tail -1 | sed 's/.*"version": *"//;s/".*//')
               echo "${pkg}_VERSION=${ver}" >> "$GITHUB_OUTPUT"
             done
           fi
@@ -93,7 +93,7 @@ jobs:
             echo "- ${pkg}: ${!ver_var}" >> /tmp/commit_msg.txt
           done
           git commit -F /tmp/commit_msg.txt
-          git push origin "${{ steps.outputs.BRANCH }}"
+          git push origin "${{ steps.branch.outputs.BRANCH }}"
 
       - name: Create pull request
         if: steps.detect.outputs.UPDATES_FOUND == 'true'
@@ -111,7 +111,7 @@ jobs:
               repo: context.repo.repo,
               title: `auto: update ${packages.length} package(s)`,
               body: `Automated package updates detected by nvchecker.\n\n## Updated packages\n${branches}\n\n## Version diff\n\`\`\`diff\n${diff}\n\`\`\`\n\nThis PR was automatically created by the version check workflow.`,
-              head: '${{ steps.outputs.BRANCH }}',
+              head: '${{ steps.branch.outputs.BRANCH }}',
               base: 'main',
               labels: ['dependencies', 'automated']
             });
