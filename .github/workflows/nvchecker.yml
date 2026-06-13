@@ -2,21 +2,22 @@ name: Check for new versions
 
 on:
   schedule:
-    # Run every 12 hours
     - cron: '0 */12 * * *'
-  # Allow manual trigger
   workflow_dispatch:
 
 permissions:
-  issues: write
+  contents: write
+  pull-requests: write
 
 jobs:
-  check-versions:
+  check-and-update:
     runs-on: ubuntu-latest
     container:
       image: python:3.13-alpine
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
 
       - name: Install build dependencies
         run: apk add --no-cache build-base curl-dev python3-dev git
@@ -30,32 +31,87 @@ jobs:
       - name: Run nvchecker
         run: nvchecker -c nvchecker.toml
 
-      - name: Check for version changes
-        id: check
+      - name: Detect version changes
+        id: detect
         run: |
-          # Compare old vs new versions. If diff is non-empty, updates found.
           diff -u /tmp/old_versions.txt old_versions.txt > /tmp/diff_output.txt || true
           if [ -s /tmp/diff_output.txt ]; then
-            echo "UPDATES_FOUND=true" >> "$GITHUB_ENV"
-            {
-              echo "DIFF<<EOF"
-              cat /tmp/diff_output.txt
-              echo "EOF"
-            } >> "$GITHUB_ENV"
-          else
-            echo "No version changes detected"
+            echo "UPDATES_FOUND=true" >> "$GITHUB_OUTPUT"
+            pkgs=""
+            while IFS= read -r line; do
+              if echo "$line" | grep -qE '^\+\s+"[a-z].*":\s*\{'; then
+                pkg=$(echo "$line" | sed 's/^[+ ]*"//;s/":\s*{.*//')
+                pkgs="${pkgs}${pkgs:+,}${pkg}"
+              fi
+            done < /tmp/diff_output.txt
+            echo "PACKAGES=${pkgs}" >> "$GITHUB_OUTPUT"
+            for pkg in $(echo "$pkgs" | tr ',' ' '); do
+              ver=$(grep -A5 "\"${pkg}\":" /tmp/diff_output.txt | grep '"version"' | tail -1 | sed 's/.*"version": *"//;s>".*//')
+              echo "${pkg}_VERSION=${ver}" >> "$GITHUB_OUTPUT"
+            done
           fi
 
-      - name: Create issue if updates available
-        if: env.UPDATES_FOUND == 'true'
+      - name: Configure git
+        if: steps.detect.outputs.UPDATES_FOUND == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Create update branch
+        if: steps.detect.outputs.UPDATES_FOUND == 'true'
+        id: branch
+        run: |
+          branch="auto-update/$(date +%Y%m%d-%H%M%S)"
+          git checkout -b "$branch"
+          echo "BRANCH=${branch}" >> "$GITHUB_OUTPUT"
+
+      - name: Update packages
+        if: steps.detect.outputs.UPDATES_FOUND == 'true'
+        run: |
+          for pkg in $(echo "${{ steps.detect.outputs.PACKAGES }}" | tr ',' ' '); do
+            ver_var="${pkg}_VERSION"
+            new_ver="${!ver_var}"
+            if [ -n "$new_ver" ]; then
+              echo "Updating ${pkg} to ${new_ver}"
+              python3 scripts/update-package.py "${pkg}" "${new_ver}"
+            fi
+          done
+
+      - name: Commit and push
+        if: steps.detect.outputs.UPDATES_FOUND == 'true'
+        run: |
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          echo "auto: update packages" > /tmp/commit_msg.txt
+          echo "" >> /tmp/commit_msg.txt
+          echo "Updated packages:" >> /tmp/commit_msg.txt
+          for pkg in $(echo "${{ steps.detect.outputs.PACKAGES }}" | tr ',' ' '); do
+            ver_var="${pkg}_VERSION"
+            echo "- ${pkg}: ${!ver_var}" >> /tmp/commit_msg.txt
+          done
+          git commit -F /tmp/commit_msg.txt
+          git push origin "${{ steps.outputs.BRANCH }}"
+
+      - name: Create pull request
+        if: steps.detect.outputs.UPDATES_FOUND == 'true'
         uses: actions/github-script@v8
         with:
           script: |
-            const diff = process.env.DIFF;
-            github.rest.issues.create({
+            const packages = '${{ steps.detect.outputs.PACKAGES }}'.split(',');
+            const branches = packages.map(pkg => {
+              const ver = process.env[`${pkg}_VERSION`];
+              return `- **${pkg}**: ${ver}`;
+            }).join('\n');
+            const diff = require('fs').readFileSync('/tmp/diff_output.txt', 'utf8');
+            await github.rest.pulls.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              title: 'Package updates available',
-              body: 'nvchecker detected updated versions:\n\n```diff\n' + diff + '\n```',
+              title: `auto: update ${packages.length} package(s)`,
+              body: `Automated package updates detected by nvchecker.\n\n## Updated packages\n${branches}\n\n## Version diff\n\`\`\`diff\n${diff}\n\`\`\`\n\nThis PR was automatically created by the version check workflow.`,
+              head: '${{ steps.outputs.BRANCH }}',
+              base: 'main',
               labels: ['dependencies', 'automated']
-            })
+            });
