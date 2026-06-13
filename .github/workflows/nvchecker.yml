@@ -21,14 +21,17 @@ jobs:
       - name: Install nvchecker
         run: pip install nvchecker
 
+      - name: Save current versions
+        run: cp old_versions.txt /tmp/old_versions.txt
+
       - name: Run nvchecker
         run: nvchecker -c nvchecker.toml
 
       - name: Check for version changes
         id: check
         run: |
-          # Write diff to a temp file. If file is non-empty, versions changed.
-          git diff old_versions.txt > /tmp/diff_output.txt || true
+          # Compare old vs new versions. If diff is non-empty, updates found.
+          diff -u /tmp/old_versions.txt old_versions.txt > /tmp/diff_output.txt || true
           if [ -s /tmp/diff_output.txt ]; then
             echo "UPDATES_FOUND=true" >> "$GITHUB_ENV"
             {
@@ -39,7 +42,6 @@ jobs:
           else
             echo "No version changes detected"
           fi
-          exit 0
 
       - name: Create issue if updates available
         if: env.UPDATES_FOUND == 'true'
