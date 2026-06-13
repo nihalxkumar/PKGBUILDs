@@ -16,7 +16,7 @@ jobs:
     container:
       image: python:3.13-alpine
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install build dependencies
         run: apk add --no-cache build-base curl-dev python3-dev git
@@ -48,7 +48,7 @@ jobs:
 
       - name: Create issue if updates available
         if: env.UPDATES_FOUND == 'true'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             const diff = process.env.DIFF;
