@@ -1,0 +1,9 @@
+# Ignore build files
+src/
+pkg/
+*.pkg.tar.zst
+*.pkg.tar.xz
+*.src.tar.gz
+*.src.tar.zst
+*.log
+alix-git/

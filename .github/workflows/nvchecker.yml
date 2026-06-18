@@ -102,21 +102,24 @@ jobs:
 
       - name: Create pull request
         if: steps.detect.outputs.UPDATES_FOUND == 'true'
-        uses: actions/github-script@v8
-        with:
-          script: |
-            const packages = '${{ steps.detect.outputs.PACKAGES }}'.split(',');
-            const branches = packages.map(pkg => {
-              const ver = process.env[`${pkg}_VERSION`];
-              return `- **${pkg}**: ${ver}`;
-            }).join('\n');
-            const diff = require('fs').readFileSync('/tmp/diff_output.txt', 'utf8');
-            await github.rest.pulls.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              title: `auto: update ${packages.length} package(s)`,
-              body: `Automated package updates detected by nvchecker.\n\n## Updated packages\n${branches}\n\n## Version diff\n\`\`\`diff\n${diff}\n\`\`\`\n\nThis PR was automatically created by the version check workflow.`,
-              head: '${{ steps.branch.outputs.BRANCH }}',
-              base: 'main',
-              labels: ['dependencies', 'automated']
-            });
+        env:
+          GH_TOKEN: ${{ secrets.PAT || github.token }}
+        run: |
+          {
+            echo "### Updated packages"
+            for pkg in $(echo "${{ steps.detect.outputs.PACKAGES }}" | tr ',' ' '); do
+              ver_var="${pkg}_VERSION"
+              echo "- **${pkg}**: ${!ver_var}"
+            done
+            echo ""
+            echo "### Version diff"
+            echo '```diff'
+            cat /tmp/diff_output.txt
+            echo '```'
+          } > /tmp/pr_body.txt
+          gh pr create \
+            --title "auto: update packages" \
+            --body-file /tmp/pr_body.txt \
+            --head "${{ steps.branch.outputs.BRANCH }}" \
+            --base main \
+            --label dependencies,automated
