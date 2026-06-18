@@ -36,7 +36,6 @@ use_latest_release = true
 source = "github"
 github = "ente-io/ente"
 prefix = "ensu-v"
-use_latest_release = true
 
 [relax-player]
 source = "github"
