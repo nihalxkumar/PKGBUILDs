@@ -15,6 +15,9 @@
 # subfolders, e.g. source or built package trees, vcs
 */**/
 
+# do not track .gitignore files inside package dirs
+*/.gitignore
+
 # exception: track workflows
 !.github/
 !.github/workflows/
@@ -29,3 +32,9 @@
 
 # lock file
 pkg.lock
+
+# binary packages
+*.deb
+*.rpm
+
+
