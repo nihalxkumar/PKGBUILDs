@@ -30,11 +30,18 @@ jobs:
       - name: Install nvchecker
         run: pip install nvchecker
 
+      - name: Setup nvchecker keyfile
+        run: |
+          cat > /tmp/keyfile.toml << KEYEOF
+          [keys]
+          github = ${{ github.token }}
+          KEYEOF
+
       - name: Save current versions
         run: cp old_versions.txt /tmp/old_versions.txt
 
       - name: Run nvchecker
-        run: nvchecker -c nvchecker.toml
+        run: nvchecker -c nvchecker.toml --keyfile /tmp/keyfile.toml
 
       - name: Detect version changes
         id: detect
@@ -42,6 +49,7 @@ jobs:
           diff -u /tmp/old_versions.txt old_versions.txt > /tmp/diff_output.txt || true
           if [ -s /tmp/diff_output.txt ]; then
             echo "UPDATES_FOUND=true" >> "$GITHUB_OUTPUT"
+            rm -f /tmp/version_map.txt
             pkgs=""
             while IFS= read -r line; do
               if echo "$line" | grep -qE '^\+\s+"[a-z].*":\s*\{'; then
@@ -52,7 +60,7 @@ jobs:
             echo "PACKAGES=${pkgs}" >> "$GITHUB_OUTPUT"
             for pkg in $(echo "$pkgs" | tr ',' ' '); do
               ver=$(grep -A5 "\"${pkg}\":" /tmp/diff_output.txt | grep '"version"' | tail -1 | sed 's/.*"version": *"//;s/".*//')
-              echo "${pkg}_VERSION=${ver}" >> "$GITHUB_OUTPUT"
+              echo "${pkg}:${ver}" >> /tmp/version_map.txt
             done
           fi
 
@@ -73,14 +81,10 @@ jobs:
       - name: Update packages
         if: steps.detect.outputs.UPDATES_FOUND == 'true'
         run: |
-          for pkg in $(echo "${{ steps.detect.outputs.PACKAGES }}" | tr ',' ' '); do
-            ver_var="${pkg}_VERSION"
-            new_ver="${!ver_var}"
-            if [ -n "$new_ver" ]; then
-              echo "Updating ${pkg} to ${new_ver}"
-              python3 scripts/update-package.py "${pkg}" "${new_ver}"
-            fi
-          done
+          while IFS=: read -r pkg ver; do
+            echo "Updating ${pkg} to ${ver}"
+            python3 scripts/update-package.py "${pkg}" "${ver}"
+          done < /tmp/version_map.txt
 
       - name: Commit and push
         if: steps.detect.outputs.UPDATES_FOUND == 'true'
@@ -90,13 +94,14 @@ jobs:
             echo "No changes to commit"
             exit 0
           fi
-          echo "auto: update packages" > /tmp/commit_msg.txt
-          echo "" >> /tmp/commit_msg.txt
-          echo "Updated packages:" >> /tmp/commit_msg.txt
-          for pkg in $(echo "${{ steps.detect.outputs.PACKAGES }}" | tr ',' ' '); do
-            ver_var="${pkg}_VERSION"
-            echo "- ${pkg}: ${!ver_var}" >> /tmp/commit_msg.txt
-          done
+          {
+            echo "auto: update packages"
+            echo ""
+            echo "Updated packages:"
+            while IFS=: read -r pkg ver; do
+              echo "- ${pkg}: ${ver}"
+            done < /tmp/version_map.txt
+          } > /tmp/commit_msg.txt
           git commit -F /tmp/commit_msg.txt
           git push origin "${{ steps.branch.outputs.BRANCH }}"
 
@@ -107,10 +112,9 @@ jobs:
         run: |
           {
             echo "### Updated packages"
-            for pkg in $(echo "${{ steps.detect.outputs.PACKAGES }}" | tr ',' ' '); do
-              ver_var="${pkg}_VERSION"
-              echo "- **${pkg}**: ${!ver_var}"
-            done
+            while IFS=: read -r pkg ver; do
+              echo "- **${pkg}**: ${ver}"
+            done < /tmp/version_map.txt
             echo ""
             echo "### Version diff"
             echo '```diff'
