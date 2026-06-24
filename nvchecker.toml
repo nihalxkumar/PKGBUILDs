@@ -35,6 +35,8 @@ use_latest_release = true
 [ensu-bin]
 source = "github"
 github = "ente-io/ente"
+use_latest_tag = true
+query = "ensu-v"
 prefix = "ensu-v"
 
 [relax-player]

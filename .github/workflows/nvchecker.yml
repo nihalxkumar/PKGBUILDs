@@ -32,9 +32,9 @@ jobs:
 
       - name: Setup nvchecker keyfile
         run: |
-          cat > /tmp/keyfile.toml << KEYEOF
+          cat > /tmp/keyfile.toml << 'KEYEOF'
           [keys]
-          github = ${{ github.token }}
+          github = '${{ github.token }}'
           KEYEOF
 
       - name: Save current versions
@@ -110,6 +110,12 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.PAT || github.token }}
         run: |
+          # Skip if an auto-update PR is already open to avoid duplicates
+          existing=$(gh pr list --state open --json headRefName --jq '[.[].headRefName | select(startswith("auto-update/"))] | length')
+          if [ "$existing" -gt 0 ]; then
+            echo "An auto-update PR already exists, skipping PR creation."
+            exit 0
+          fi
           {
             echo "### Updated packages"
             while IFS=: read -r pkg ver; do
