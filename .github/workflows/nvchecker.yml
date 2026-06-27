@@ -46,23 +46,40 @@ jobs:
       - name: Detect version changes
         id: detect
         run: |
+          # Keep a human-readable diff for the PR body.
           diff -u /tmp/old_versions.txt old_versions.txt > /tmp/diff_output.txt || true
-          if [ -s /tmp/diff_output.txt ]; then
-            echo "UPDATES_FOUND=true" >> "$GITHUB_OUTPUT"
-            rm -f /tmp/version_map.txt
-            pkgs=""
-            while IFS= read -r line; do
-              if echo "$line" | grep -qE '^\+\s+"[a-z].*":\s*\{'; then
-                pkg=$(echo "$line" | sed 's/^[+ ]*"//;s/":\s*{.*//')
-                pkgs="${pkgs}${pkgs:+,}${pkg}"
-              fi
-            done < /tmp/diff_output.txt
-            echo "PACKAGES=${pkgs}" >> "$GITHUB_OUTPUT"
-            for pkg in $(echo "$pkgs" | tr ',' ' '); do
-              ver=$(grep -A5 "\"${pkg}\":" /tmp/diff_output.txt | grep '"version"' | tail -1 | sed 's/.*"version": *"//;s/".*//')
-              echo "${pkg}:${ver}" >> /tmp/version_map.txt
-            done
-          fi
+          # Compare the two nvchecker JSON files directly. Relying on the unified
+          # diff is fragile: on a version bump only the "version" line is marked
+          # with "+", while the package-name line stays as unchanged context, so
+          # scraping package names from "+" lines never matched and the version
+          # map ended up empty.
+          rm -f /tmp/version_map.txt
+          python3 - <<'PY'
+          import json
+
+          def load(path):
+              with open(path) as f:
+                  return json.load(f).get("data", {})
+
+          old = load("/tmp/old_versions.txt")
+          new = load("old_versions.txt")
+
+          changed = []
+          for pkg, info in new.items():
+              ver = info.get("version")
+              if ver and old.get(pkg, {}).get("version") != ver:
+                  changed.append((pkg, ver))
+
+          with open("/tmp/version_map.txt", "w") as f:
+              for pkg, ver in changed:
+                  f.write(f"{pkg}:{ver}\n")
+
+          import os
+          with open(os.environ["GITHUB_OUTPUT"], "a") as out:
+              if changed:
+                  out.write("UPDATES_FOUND=true\n")
+                  out.write("PACKAGES=" + ",".join(p for p, _ in changed) + "\n")
+          PY
 
       - name: Configure git
         if: steps.detect.outputs.UPDATES_FOUND == 'true'
