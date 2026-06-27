@@ -12,9 +12,10 @@
       "revision": "ce18e9c76ba13eea57990990ba59a91e770aa7dd"
     },
     "ensu-bin": {
-      "version": "0.1.17",
-      "gitref": "refs/tags/ensu-v0.1.17",
-      "url": "https://github.com/ente-io/ente/releases/tag/ensu-v0.1.17"
+      "version": "0.1.18-beta",
+      "gitref": "refs/tags/ensu-v0.1.18-beta",
+      "revision": "aa9887f5bf6e3cc9bd1370a245ff2ee0cc305ed9",
+      "url": "https://github.com/ente-io/ente/releases/tag/ensu-v0.1.18-beta"
     },
     "onionmine": {
       "version": "1.1.0",
