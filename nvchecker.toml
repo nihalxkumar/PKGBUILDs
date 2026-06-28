@@ -35,8 +35,14 @@ use_latest_release = true
 [ensu-bin]
 source = "github"
 github = "ente-io/ente"
-use_latest_tag = true
-query = "ensu-v"
+# ente-io/ente is a monorepo that tags every product, so restrict to the
+# ensu-v* tags and pick the highest version. use_max_tag (not use_latest_tag)
+# is required because nvchecker only honours include_regex/exclude_regex for
+# the max-tag/max-release sources. exclude_regex drops pre-releases like
+# ensu-v0.1.18-beta so we don't auto-propose beta builds.
+use_max_tag = true
+include_regex = "ensu-v.*"
+exclude_regex = ".*-(alpha|beta|rc).*"
 prefix = "ensu-v"
 
 [relax-player]
