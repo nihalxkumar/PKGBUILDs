@@ -63,6 +63,7 @@ branch = "main"
 [onionspray]
 source = "git"
 git = "https://gitlab.torproject.org/tpo/onion-services/onionspray.git"
+use_max_tag = true
 tag_strip = "v"
 
 [onionspray-git]

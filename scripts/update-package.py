@@ -237,6 +237,10 @@ def update_package(pkgdir: str, new_ver: str):
         print(f"Error: No PKGBUILD found in {pkgdir}", file=sys.stderr)
         return False
 
+    # Strip leading 'v' if version starts with 'v' followed by a digit (e.g. 'v1.8.1' -> '1.8.1')
+    if re.match(r'^v\d', new_ver):
+        new_ver = new_ver[1:]
+
     info = parse_pkgbuild(pkgbuild_path)
     old_ver = info['pkgver']
 

@@ -89,11 +89,8 @@ jobs:
 
       - name: Create update branch
         if: steps.detect.outputs.UPDATES_FOUND == 'true'
-        id: branch
         run: |
-          branch="auto-update/$(date +%Y%m%d-%H%M%S)"
-          git checkout -b "$branch"
-          echo "BRANCH=${branch}" >> "$GITHUB_OUTPUT"
+          git checkout -B auto-update
 
       - name: Update packages
         if: steps.detect.outputs.UPDATES_FOUND == 'true'
@@ -120,19 +117,13 @@ jobs:
             done < /tmp/version_map.txt
           } > /tmp/commit_msg.txt
           git commit -F /tmp/commit_msg.txt
-          git push origin "${{ steps.branch.outputs.BRANCH }}"
+          git push --force origin auto-update
 
-      - name: Create pull request
+      - name: Create or update pull request
         if: steps.detect.outputs.UPDATES_FOUND == 'true'
         env:
           GH_TOKEN: ${{ secrets.PAT || github.token }}
         run: |
-          # Skip if an auto-update PR is already open to avoid duplicates
-          existing=$(gh pr list --state open --json headRefName --jq '[.[].headRefName | select(startswith("auto-update/"))] | length')
-          if [ "$existing" -gt 0 ]; then
-            echo "An auto-update PR already exists, skipping PR creation."
-            exit 0
-          fi
           {
             echo "### Updated packages"
             while IFS=: read -r pkg ver; do
@@ -144,9 +135,17 @@ jobs:
             cat /tmp/diff_output.txt
             echo '```'
           } > /tmp/pr_body.txt
-          gh pr create \
-            --title "auto: update packages" \
-            --body-file /tmp/pr_body.txt \
-            --head "${{ steps.branch.outputs.BRANCH }}" \
-            --base main \
-            --label dependencies,automated
+
+          pr_number=$(gh pr list --head auto-update --state open --json number --jq '.[0].number')
+          if [ -n "$pr_number" ] && [ "$pr_number" != "null" ]; then
+            echo "Updating description for existing PR #${pr_number}"
+            gh pr edit "$pr_number" --body-file /tmp/pr_body.txt
+          else
+            echo "Creating new PR"
+            gh pr create \
+              --title "auto: update packages" \
+              --body-file /tmp/pr_body.txt \
+              --head auto-update \
+              --base main \
+              --label dependencies,automated
+          fi
