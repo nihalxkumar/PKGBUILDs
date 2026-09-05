@@ -4,7 +4,8 @@
     "contextpilot": {
       "version": "20251018.082643",
       "revision": "ce18e9c76ba13eea57990990ba59a91e770aa7dd",
-      "url": "https://github.com/krshrimali/context-pilot-rs/commit/ce18e9c76ba13eea57990990ba59a91e770aa7dd"
+      "url": "https://github.com/krshrimali/context-pilot-rs/commit/ce18e9c76ba13eea57990990ba59a91e770aa7dd",
+      "revision_creation_time": "2025-10-18T08:26:43Z"
     },
     "contextpilot-git": {
       "version": "ce18e9c76ba13eea57990990ba59a91e770aa7dd",
@@ -28,29 +29,32 @@
       "revision": "70c4ced1b48ba369808e9d005212302b4815b57d"
     },
     "onionspray": {
-      "version": "1.8.1",
+      "version": "v1.8.1",
       "gitref": "refs/tags/v1.8.1",
       "revision": "c76053de741af29c7b0248126387befd95f2704a"
     },
     "onionspray-git": {
-      "version": "fd7e69b9919e966bf7abebfc53f2b4d546914027",
+      "version": "d7b9375cd48505cdcd3104cf633b00b742fb35f8",
       "gitref": "refs/heads/main",
-      "revision": "fd7e69b9919e966bf7abebfc53f2b4d546914027"
+      "revision": "d7b9375cd48505cdcd3104cf633b00b742fb35f8"
     },
     "relax-player": {
       "version": "20260105.075002",
       "revision": "6d3b48ad99cb5c201e3631c6d78bf91f9e0397a5",
-      "url": "https://github.com/ebithril/relax-player/commit/6d3b48ad99cb5c201e3631c6d78bf91f9e0397a5"
+      "url": "https://github.com/ebithril/relax-player/commit/6d3b48ad99cb5c201e3631c6d78bf91f9e0397a5",
+      "revision_creation_time": "2026-01-05T07:50:02Z"
     },
     "smithery-cli": {
       "version": "v1.2.0",
       "gitref": "refs/tags/v1.2.0",
-      "url": "https://github.com/arcadeai-labs/smithery-cli/releases/tag/v1.2.0"
+      "url": "https://github.com/arcadeai-labs/smithery-cli/releases/tag/v1.2.0",
+      "creation_time": "2026-05-31T07:11:37Z"
     },
     "terminal-rain-lightning": {
       "version": "20260430.205237",
       "revision": "cc3aa19e1e9aec628a608b0ca6b7c475cce98c05",
-      "url": "https://github.com/rmaake1/terminal-rain-lightning/commit/cc3aa19e1e9aec628a608b0ca6b7c475cce98c05"
+      "url": "https://github.com/rmaake1/terminal-rain-lightning/commit/cc3aa19e1e9aec628a608b0ca6b7c475cce98c05",
+      "revision_creation_time": "2026-04-30T20:52:37Z"
     }
   }
 }
