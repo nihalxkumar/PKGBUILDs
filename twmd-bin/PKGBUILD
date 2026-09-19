@@ -2,7 +2,7 @@
 
 pkgname=twitter-media-downloader-bin
 _pkgname=twitter-media-downloader
-pkgver=1.15.0
+pkgver=20260106.142427
 pkgrel=1
 pkgdesc="A tool to download media from Twitter (pre-built binary)"
 arch=('x86_64' 'aarch64')
