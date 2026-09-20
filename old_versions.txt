@@ -28,9 +28,9 @@
       "revision": "70c4ced1b48ba369808e9d005212302b4815b57d"
     },
     "onionspray": {
-      "version": "1.8.1",
-      "gitref": "refs/tags/v1.8.1",
-      "revision": "c76053de741af29c7b0248126387befd95f2704a"
+      "version": "1.8.2",
+      "gitref": "refs/tags/v1.8.2",
+      "revision": "217f4300d19cba1721354bc751b30c34624fa219"
     },
     "onionspray-git": {
       "version": "217f4300d19cba1721354bc751b30c34624fa219",
