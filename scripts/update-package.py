@@ -44,33 +44,32 @@ def parse_pkgbuild(pkgbuild_path: str) -> dict:
     has_skip = bool(re.search(r"sha256sums=\(['\"]SKIP['\"]\)", content))
     has_arch_skip = bool(re.search(r"sha256sums_\w+=\(['\"]SKIP['\"]\)", content))
 
-    # Extract source array (handle multi-line)
-    sources = []
-    in_source = False
-    paren_depth = 0
-    source_block = ""
-    for line in content.splitlines():
-        stripped = line.strip()
-        if 'source=(' in stripped:
-            in_source = True
-            paren_depth = stripped.count('(') - stripped.count(')')
-            source_block = stripped
-            if paren_depth <= 0:
-                in_source = False
+    # Extract source arrays (handle multi-line). Arch-specific arrays such as
+    # source_x86_64/source_aarch64 are kept in separate groups so each arch
+    # gets its own sha256sum later.
+    source_groups = {}
+    lines = content.splitlines()
+    idx = 0
+    while idx < len(lines):
+        stripped = lines[idx].strip()
+        array_match = re.match(r'source(_\w+)?=\(', stripped)
+        if not array_match:
+            idx += 1
             continue
-        if in_source:
-            source_block += " " + stripped
-            paren_depth += stripped.count('(') - stripped.count(')')
-            if paren_depth <= 0:
-                in_source = False
-                break
-
-    if source_block:
-        m = re.search(r'source=\((.*)\)', source_block, re.DOTALL)
-        if m:
-            raw = m.group(1)
-            tokens = re.findall(r'"[^"]*"|\'[^\']*\'|\S+', raw)
-            sources = [t.strip('"').strip("'") for t in tokens]
+        suffix = array_match.group(1) or ''
+        block = stripped
+        depth = stripped.count('(') - stripped.count(')')
+        while depth > 0 and idx + 1 < len(lines):
+            idx += 1
+            stripped = lines[idx].strip()
+            block += " " + stripped
+            depth += stripped.count('(') - stripped.count(')')
+        inner = re.search(r'source(?:_\w+)?=\((.*)\)', block, re.DOTALL)
+        tokens = []
+        if inner:
+            tokens = re.findall(r'"[^"]*"|\'[^\']*\'|\S+', inner.group(1))
+        source_groups[suffix] = [t.strip('"').strip("'") for t in tokens]
+        idx += 1
 
     # Resolve variable references in sources
     variables = {}
@@ -79,13 +78,20 @@ def parse_pkgbuild(pkgbuild_path: str) -> dict:
         if val:
             variables[name] = val
 
-    resolved_sources = []
-    for src in sources:
-        resolved = src
-        for var_name, var_val in variables.items():
-            resolved = resolved.replace(f'${{{var_name}}}', var_val)
-            resolved = resolved.replace(f'${var_name}', var_val)
-        resolved_sources.append(resolved)
+    resolved_groups = {}
+    for suffix, entries in source_groups.items():
+        resolved = []
+        for src in entries:
+            item = src
+            for var_name, var_val in variables.items():
+                item = item.replace(f'${{{var_name}}}', var_val)
+                item = item.replace(f'${var_name}', var_val)
+            resolved.append(item)
+        resolved_groups[suffix] = resolved
+
+    # Flatten groups for callers that only need "any source".
+    sources = [s for entries in source_groups.values() for s in entries]
+    resolved_sources = [s for entries in resolved_groups.values() for s in entries]
 
     # Determine source URL pattern
     source_url = None
@@ -123,6 +129,8 @@ def parse_pkgbuild(pkgbuild_path: str) -> dict:
         'has_skip_sha256': has_skip or has_arch_skip,
         'sources': sources,
         'resolved_sources': resolved_sources,
+        'source_groups': source_groups,
+        'resolved_groups': resolved_groups,
         'source_url': source_url,
         'is_git': is_git,
         'is_binary': is_binary,
@@ -178,13 +186,15 @@ def resolve_source_url(source_pattern: str, old_ver: str, new_ver: str,
 
 def update_source_url_in_content(content: str, old_ver: str, new_ver: str) -> str:
     """Update version references in source URLs within PKGBUILD content."""
-    # Replace version in source= lines
+    # Replace version in source= lines (including arch-specific
+    # source_x86_64/source_aarch64 arrays).
+    ends_with_newline = content.endswith('\n')
     lines = content.splitlines()
     result = []
     in_source = False
     for line in lines:
         stripped = line.strip()
-        if stripped.startswith('source=('):
+        if re.match(r'source(_\w+)?=\(', stripped):
             in_source = True
 
         if in_source:
@@ -195,15 +205,28 @@ def update_source_url_in_content(content: str, old_ver: str, new_ver: str) -> st
             in_source = False
 
         result.append(line)
-    return '\n'.join(result)
+    updated = '\n'.join(result)
+    if ends_with_newline:
+        updated += '\n'
+    return updated
 
 
 def update_srcinfo(pkgdir: str, pkgname: str, old_ver: str, new_ver: str,
-                   new_sha256: str | None):
-    """Update .SRCINFO file."""
+                   new_sha256: dict | str | None):
+    """Update .SRCINFO file.
+
+    new_sha256 maps arch suffix ('' for plain sha256sums) to hash. A plain
+    string is accepted for backwards compatibility and applies to the
+    un-suffixed sha256sums line only.
+    """
     srcinfo_path = os.path.join(pkgdir, '.SRCINFO')
     if not os.path.exists(srcinfo_path):
         return
+
+    if isinstance(new_sha256, str):
+        hashes = {'': new_sha256}
+    else:
+        hashes = new_sha256 or {}
 
     content = Path(srcinfo_path).read_text()
 
@@ -213,17 +236,11 @@ def update_srcinfo(pkgdir: str, pkgname: str, old_ver: str, new_ver: str,
     # Update source lines (replace old version with new)
     content = content.replace(old_ver, new_ver)
 
-    # Update sha256sums if we have a new hash
-    if new_sha256:
+    # Update sha256sums, one hash per arch suffix
+    for suffix, digest in hashes.items():
         content = re.sub(
-            r'(\tsha256sums = )[0-9a-f]{64}',
-            f'\\g<1>{new_sha256}',
-            content
-        )
-        # Also handle per-arch sha256sums
-        content = re.sub(
-            r'(\tsha256sums_\w+ = )[0-9a-f]{64}',
-            f'\\g<1>{new_sha256}',
+            rf'(\tsha256sums{re.escape(suffix)} = )[0-9a-f]{{64}}',
+            f'\\g<1>{digest}',
             content
         )
 
@@ -260,26 +277,34 @@ def update_package(pkgdir: str, new_ver: str):
         print(f"  Only updating tracked version in old_versions.txt")
         return True
 
-    # Determine new sha256sum
-    new_sha256 = None
+    # Determine new sha256sums, one per arch suffix. Arch-specific source
+    # arrays (e.g. twmd-bin's source_x86_64/source_aarch64) each point at a
+    # different asset, so each needs its own download + hash. Sharing one
+    # hash across arches leaves stale checksums behind.
+    new_hashes: dict = {}
     if info['has_skip_sha256']:
         print(f"  sha256sums = SKIP, no hash computation needed")
-    elif info['source_url']:
-        # Try to resolve and download the new source
-        resolved_url = resolve_source_url(
-            info['source_url'], old_ver, new_ver, info['tag_prefix']
-        )
-        if resolved_url:
-            print(f"  Downloading {resolved_url}...")
-            new_sha256 = compute_sha256(resolved_url)
-            if new_sha256:
-                print(f"  sha256 = {new_sha256}")
-            else:
-                print(f"  Warning: Could not compute sha256, leaving unchanged")
-        else:
-            print(f"  Warning: Could not resolve source URL for sha256 computation")
     else:
-        print(f"  Warning: No source URL found, cannot compute sha256")
+        for suffix, entries in info['resolved_groups'].items():
+            for pattern in entries:
+                url = pattern.split('::', 1)[1] if '::' in pattern else pattern
+                if url.startswith('git+'):
+                    continue  # Can't download git repos for sha256
+                if 'github.com' in url and '/releases/download/' in url:
+                    url = url.replace(old_ver, new_ver)
+                    label = suffix or 'default'
+                    print(f"  Downloading [{label}] {url}...")
+                    digest = compute_sha256(url)
+                    if digest:
+                        print(f"  sha256 [{label}] = {digest}")
+                        new_hashes[suffix] = digest
+                    else:
+                        print(f"  Warning: Could not compute sha256 for [{label}], leaving unchanged")
+                    break
+            else:
+                continue
+        if not new_hashes:
+            print(f"  Warning: No downloadable source URL found, cannot compute sha256")
 
     # Read and update PKGBUILD
     content = Path(pkgbuild_path).read_text()
@@ -296,24 +321,18 @@ def update_package(pkgdir: str, new_ver: str):
     # Update source URLs (replace old version with new)
     content = update_source_url_in_content(content, old_ver, new_ver)
 
-    # Update sha256sums if we have a new hash
-    if new_sha256:
+    # Update sha256sums, one hash per arch suffix
+    for suffix, digest in new_hashes.items():
         content = re.sub(
-            r"(sha256sums=\()['\"][0-9a-f]{64}['\"]\)",
-            f"\\g<1>'{new_sha256}')",
-            content
-        )
-        # Also handle per-arch sha256sums
-        content = re.sub(
-            r"(sha256sums_\w+=\()['\"][0-9a-f]{64}['\"]\)",
-            f"\\g<1>'{new_sha256}')",
+            rf"(sha256sums{re.escape(suffix)}=\()['\"][0-9a-f]{{64}}['\"]\)",
+            f"\\g<1>'{digest}')",
             content
         )
 
     Path(pkgbuild_path).write_text(content)
 
     # Update .SRCINFO
-    update_srcinfo(pkgdir, info['pkgname'], old_ver, new_ver, new_sha256)
+    update_srcinfo(pkgdir, info['pkgname'], old_ver, new_ver, new_hashes)
 
     print(f"  Updated PKGBUILD and .SRCINFO")
     return True

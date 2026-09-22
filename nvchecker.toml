@@ -20,6 +20,10 @@ pypi = "terminal-rain-lightning"
 [twmd-bin]
 source = "github"
 github = "mmpx12/twitter-media-downloader"
+# Track the latest GitHub release (e.g. v1.15.0). Without this nvchecker
+# falls back to a commit-date version (e.g. 20260106.142427) for which no
+# release assets exist, so the generated source URLs 404.
+use_latest_release = true
 
 [twmd-git]
 source = "github"
