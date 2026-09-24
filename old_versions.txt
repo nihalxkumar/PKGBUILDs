@@ -18,6 +18,11 @@
       "revision": "a741ba42b5d11adc3bf797d80a339e5195cec285",
       "url": "https://github.com/ente-io/ente/releases/tag/ensu-v0.1.20"
     },
+    "onionmine": {
+      "version": "1.1.0",
+      "gitref": "refs/tags/1.1.0",
+      "revision": "4192c3af6abdee514ceb6f493e0c19504e1fc892"
+    },
     "onionmine-git": {
       "version": "0f3af8c28d37fc4b3f1d72477d28814b91de9729",
       "gitref": "refs/heads/main",
