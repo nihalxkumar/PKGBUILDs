@@ -18,25 +18,20 @@
       "revision": "a741ba42b5d11adc3bf797d80a339e5195cec285",
       "url": "https://github.com/ente-io/ente/releases/tag/ensu-v0.1.20"
     },
-    "onionmine": {
-      "version": "1.1.0",
-      "gitref": "refs/tags/1.1.0",
-      "revision": "4192c3af6abdee514ceb6f493e0c19504e1fc892"
-    },
     "onionmine-git": {
-      "version": "70c4ced1b48ba369808e9d005212302b4815b57d",
+      "version": "0f3af8c28d37fc4b3f1d72477d28814b91de9729",
       "gitref": "refs/heads/main",
-      "revision": "70c4ced1b48ba369808e9d005212302b4815b57d"
+      "revision": "0f3af8c28d37fc4b3f1d72477d28814b91de9729"
     },
     "onionspray": {
-      "version": "v1.8.2",
-      "gitref": "refs/tags/v1.8.2",
-      "revision": "1def396779e3f311b7f5b4560743c6f06e3fb06e"
+      "version": "v1.8.3",
+      "gitref": "refs/tags/v1.8.3",
+      "revision": "264af5e2191607a5eae6c0bb5318ec96ee328242"
     },
     "onionspray-git": {
-      "version": "217f4300d19cba1721354bc751b30c34624fa219",
+      "version": "afcbfc49fe0873e0a783287816c07164563ebe18",
       "gitref": "refs/heads/main",
-      "revision": "217f4300d19cba1721354bc751b30c34624fa219"
+      "revision": "afcbfc49fe0873e0a783287816c07164563ebe18"
     },
     "relax-player": {
       "version": "20260105.075002",
