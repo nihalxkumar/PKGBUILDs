@@ -1,0 +1,128 @@
+name: Test PKGBUILDs
+
+on:
+  pull_request:
+    paths:
+      - '**/PKGBUILD'
+      - '**/.SRCINFO'
+      - '.github/workflows/test.yml'
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Lint and Test Packages
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect modified packages
+        id: detect
+        run: |
+          BASE_REF="${{ github.base_ref || 'main' }}"
+          echo "Comparing against origin/$BASE_REF"
+          git fetch origin "$BASE_REF" --depth=1 || true
+
+          CHANGED_PKGS=$(git diff --name-only "origin/$BASE_REF"...HEAD 2>/dev/null | \
+            grep -E '^[^/]+/(PKGBUILD|\.SRCINFO)$' | \
+            cut -d'/' -f1 | \
+            sort -u || true)
+
+          # Fallback for workflow_dispatch or shallow PRs
+          if [ -z "$CHANGED_PKGS" ]; then
+            CHANGED_PKGS=$(git diff --name-only HEAD~1...HEAD 2>/dev/null | \
+              grep -E '^[^/]+/(PKGBUILD|\.SRCINFO)$' | \
+              cut -d'/' -f1 | \
+              sort -u || true)
+          fi
+
+          # Sanitize package directory names against command injection
+          VALID_PKGS=""
+          for p in $CHANGED_PKGS; do
+            if echo "$p" | grep -qE '^[a-zA-Z0-9][a-zA-Z0-9_\.\-]*$'; then
+              VALID_PKGS="$VALID_PKGS $p"
+            else
+              echo "Warning: Skipping unsafe or invalid package directory name '$p'"
+            fi
+          done
+          VALID_PKGS=$(echo "$VALID_PKGS" | xargs)
+
+          echo "Changed packages: $VALID_PKGS"
+          echo "pkgs=$VALID_PKGS" >> "$GITHUB_OUTPUT"
+
+      - name: Test packages in Arch Linux
+        if: steps.detect.outputs.pkgs != ''
+        env:
+          PKGS: ${{ steps.detect.outputs.pkgs }}
+        run: |
+          docker run --rm \
+            -v "$PWD:/workspace" \
+            -w /workspace \
+            -e PKGS="$PKGS" \
+            archlinux:base-devel bash -e -c '
+              echo "=== Initializing Arch Linux build environment ==="
+              pacman -Sy --noconfirm archlinux-keyring
+              pacman -Syu --noconfirm --needed git namcap sudo diffutils
+
+              useradd -m -d /home/builder -s /bin/bash builder
+              echo "builder ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers.d/builder
+              git config --global --add safe.directory /workspace
+
+              for pkg in $PKGS; do
+                echo ""
+                echo "=========================================="
+                echo "Testing package: $pkg"
+                echo "=========================================="
+
+                if [ ! -f "$pkg/PKGBUILD" ]; then
+                  echo "No PKGBUILD found in $pkg, skipping"
+                  continue
+                fi
+
+                # 1. Verify .SRCINFO is in sync with PKGBUILD
+                if [ -f "$pkg/.SRCINFO" ]; then
+                  echo "[1/3] Checking .SRCINFO synchronization..."
+                  (cd "$pkg" && sudo -u builder makepkg --printsrcinfo > .SRCINFO.tmp)
+                  if ! diff -u "$pkg/.SRCINFO" "$pkg/.SRCINFO.tmp"; then
+                    echo "ERROR: $pkg/.SRCINFO is out of sync with PKGBUILD!"
+                    echo "Regenerate it using: makepkg --printsrcinfo > .SRCINFO"
+                    rm -f "$pkg/.SRCINFO.tmp"
+                    exit 1
+                  fi
+                  rm -f "$pkg/.SRCINFO.tmp"
+                  echo "✓ .SRCINFO is in sync"
+                fi
+
+                # 2. Lint PKGBUILD metadata with namcap
+                echo "[2/3] Linting $pkg/PKGBUILD with namcap..."
+                namcap "$pkg/PKGBUILD" || true
+
+                # 3. Test build / packaging
+                echo "[3/3] Testing build & packaging for $pkg..."
+                chown -R builder:builder "$pkg"
+                (
+                  cd "$pkg"
+                  set +e
+                  build_output=$(sudo -u builder makepkg -s --noconfirm --noprogressbar 2>&1)
+                  build_rc=$?
+                  set -e
+                  echo "$build_output"
+
+                  if [ $build_rc -eq 0 ]; then
+                    echo "✓ Build succeeded for $pkg"
+                    echo "Linting built package(s)..."
+                    namcap ./*.pkg.tar.zst || true
+                  elif echo "$build_output" | grep -qiE "target not found|failed to install missing dependencies|could not satisfy dependencies"; then
+                    echo "Notice: Package has dependencies not available in official repos (e.g. AUR)."
+                    echo "Verifying source download and checksum integrity..."
+                    sudo -u builder makepkg -f -d --nobuild --nodeps
+                    echo "✓ Source download and checksum integrity verified for $pkg"
+                  else
+                    echo "ERROR: Package build failed for $pkg!"
+                    exit 1
+                  fi
+                )
+              done
+            '

@@ -14,11 +14,14 @@ Examples:
 """
 
 import hashlib
+import io
 import os
 import re
 import subprocess
 import sys
+import tarfile
 import tempfile
+import zipfile
 from pathlib import Path
 
 
@@ -137,6 +140,264 @@ def parse_pkgbuild(pkgbuild_path: str) -> dict:
         'tag_prefix': tag_prefix,
         'content': content,
     }
+
+
+def format_file_size(size_bytes: int) -> str:
+    s = float(size_bytes)
+    for unit in ['B', 'KB', 'MB', 'GB']:
+        if s < 1024:
+            return f"{s:.2f} {unit}"
+        s /= 1024
+    return f"{s:.2f} TB"
+
+
+def extract_expected_targets(pkgbuild_content: str) -> set[str]:
+    """Extract expected files/destinations referenced in PKGBUILD."""
+    targets = set()
+    in_heredoc = False
+    heredoc_delimiter = ''
+
+    # Normalize shell line continuations (\ followed by newline)
+    normalized_content = re.sub(r'\\\s*\n', ' ', pkgbuild_content)
+
+    for line in normalized_content.splitlines():
+        stripped = line.strip()
+
+        # Handle heredoc blocks: ignore content generated within heredocs
+        if in_heredoc:
+            if stripped == heredoc_delimiter:
+                in_heredoc = False
+                heredoc_delimiter = ''
+            continue
+
+        heredoc_match = re.search(r"<<\s*['\"]?([a-zA-Z0-9_]+)['\"]?", stripped)
+        if heredoc_match:
+            in_heredoc = True
+            heredoc_delimiter = heredoc_match.group(1)
+            continue
+
+        # Skip lines that generate files from stdin or echo/cat
+        if '/dev/stdin' in stripped or 'cat >' in stripped:
+            continue
+
+        # Scan install commands: only track source files, never destinations ($pkgdir)
+        if stripped.startswith('install '):
+            parts = [p.strip('\"\'') for p in stripped.split() if p]
+            args = [p for p in parts[1:] if not p.startswith('-')]
+            if len(args) >= 2:
+                # args[:-1] are sources, args[-1] is destination
+                for src in args[:-1]:
+                    if 'pkgdir' not in src and src != '/dev/stdin':
+                        b = os.path.basename(src)
+                        if b and not b.startswith('$') and '*' not in b:
+                            targets.add(b)
+            continue
+
+        # Scan desktop-file-edit: modifies an extracted desktop file
+        if 'desktop-file-edit' in stripped:
+            for word in stripped.split():
+                clean = word.strip('\"\'();,')
+                if clean.endswith('.desktop'):
+                    b = os.path.basename(clean)
+                    if b and not b.startswith('$') and '*' not in b:
+                        targets.add(b)
+            continue
+
+    return targets
+
+
+def inspect_archive_members(file_path: str, filename: str) -> tuple[str, str, list[str]]:
+    """Inspect the contents of an archive file.
+
+    Returns:
+        (format_name, format_details, list_of_file_paths)
+    """
+    # 1. Debian package (.deb)
+    if filename.endswith('.deb'):
+        res = subprocess.run(['ar', 't', file_path], capture_output=True, text=True)
+        if res.returncode == 0:
+            members = [m.strip() for m in res.stdout.splitlines() if m.strip()]
+            data_tar = next((m for m in members if m.startswith('data.tar')), None)
+            if data_tar:
+                p = subprocess.run(['ar', 'p', file_path, data_tar], capture_output=True)
+                files = []
+                try:
+                    with tarfile.open(fileobj=io.BytesIO(p.stdout)) as tf:
+                        files = [m.name for m in tf.getmembers() if not m.isdir()]
+                except Exception:
+                    p2 = subprocess.run(['tar', '-taf', '-'], input=p.stdout, capture_output=True)
+                    if p2.returncode == 0:
+                        out = p2.stdout.decode('utf-8', errors='replace')
+                        files = [f.strip() for f in out.splitlines() if f.strip() and not f.endswith('/')]
+                return 'deb', f'Debian package ({data_tar})', files
+
+    # 2. Tar archives (.tar, .tar.gz, .tar.xz, .tar.zst, .tgz, etc.)
+    try:
+        with tarfile.open(file_path) as tf:
+            files = [m.name for m in tf.getmembers() if not m.isdir()]
+            return 'tar', 'Tar archive', files
+    except Exception:
+        pass
+
+    # 3. Zip archives
+    try:
+        with zipfile.ZipFile(file_path) as zf:
+            files = [n for n in zf.namelist() if not n.endswith('/')]
+            return 'zip', 'Zip archive', files
+    except Exception:
+        pass
+
+    # 4. Raw file / ELF binary
+    res = subprocess.run(['file', '-b', file_path], capture_output=True, text=True)
+    file_info = res.stdout.strip() or 'Binary file'
+    return 'file', file_info, [filename]
+
+
+def inspect_and_validate_asset(
+    file_path: str,
+    asset_name: str,
+    pkgbuild_content: str,
+    pkgname: str,
+    new_ver: str,
+    report_file: str | None = None
+) -> dict:
+    """Inspect downloaded asset, check against PKGBUILD, log output, and write report."""
+    size_bytes = os.path.getsize(file_path)
+    size_str = format_file_size(size_bytes)
+    kind, details, files = inspect_archive_members(file_path, asset_name)
+
+    expected_targets = extract_expected_targets(pkgbuild_content)
+    matched_targets = []
+    missing_targets = []
+
+    for target in expected_targets:
+        found = any(
+            f == target or f.endswith('/' + target) or os.path.basename(f) == target
+            for f in files
+        )
+        if found:
+            matched_targets.append(target)
+        else:
+            missing_targets.append(target)
+
+    format_warnings = []
+    if kind == 'deb':
+        if 'data.tar.gz' in pkgbuild_content and 'data.tar.gz' not in details:
+            format_warnings.append(
+                f"PKGBUILD references data.tar.gz, but deb contains {details}"
+            )
+
+    key_files = []
+    for f in files:
+        b = os.path.basename(f)
+        if (
+            f.startswith(('usr/bin/', 'bin/', 'opt/')) or
+            b.endswith(('.desktop', '.service', '.png', '.svg')) or
+            f in expected_targets or b in expected_targets
+        ):
+            key_files.append(f)
+
+    if not key_files and len(files) <= 15:
+        key_files = list(files)
+
+    print(f"  [archive-check] {asset_name} ({size_str}, {details})")
+    if key_files:
+        print(f"    Key files ({len(key_files)} of {len(files)}):")
+        for kf in key_files[:10]:
+            print(f"      - {kf}")
+        if len(key_files) > 10:
+            print(f"      ... and {len(key_files) - 10} more")
+    for mt in matched_targets:
+        print(f"    ✓ Confirmed: '{mt}' found in archive")
+    for wt in missing_targets:
+        print(f"    ⚠️ Warning: '{wt}' expected by PKGBUILD but NOT found in archive!")
+    for fw in format_warnings:
+        print(f"    ⚠️ Warning: {fw}")
+
+    report_target = report_file or os.environ.get(
+        'PACKAGE_INSPECTION_FILE', '/tmp/package_inspections.md'
+    )
+    try:
+        md_lines = [
+            f"<details>",
+            f"<summary>📦 Asset Inspection: <code>{pkgname}</code> ({asset_name})</summary>\n",
+            f"- **Asset**: `{asset_name}`",
+            f"- **Size**: {size_str}",
+            f"- **Format**: {details}",
+            f"- **Total files**: {len(files)}",
+        ]
+
+        if key_files:
+            md_lines.append("\n**Key files:**")
+            for kf in key_files[:12]:
+                md_lines.append(f"- `{kf}`")
+            if len(key_files) > 12:
+                md_lines.append(f"- *... and {len(key_files) - 12} more*")
+
+        if matched_targets or missing_targets or format_warnings:
+            md_lines.append("\n**PKGBUILD validation:**")
+            for mt in matched_targets:
+                md_lines.append(f"- ✅ Confirmed `{mt}` present in asset")
+            for wt in missing_targets:
+                md_lines.append(f"- ⚠️ **Warning**: `{wt}` expected by PKGBUILD but missing!")
+            for fw in format_warnings:
+                md_lines.append(f"- ⚠️ **Warning**: {fw}")
+
+        md_lines.append("\n</details>\n")
+
+        with open(report_target, 'a') as rf:
+            rf.write('\n'.join(md_lines) + '\n')
+    except Exception as e:
+        print(f"  Note: Could not write inspection report: {e}", file=sys.stderr)
+
+    return {
+        'asset_name': asset_name,
+        'size_str': size_str,
+        'details': details,
+        'files': files,
+        'matched_targets': matched_targets,
+        'missing_targets': missing_targets,
+        'warnings': format_warnings,
+    }
+
+
+def download_and_hash_asset(
+    url: str,
+    asset_name: str,
+    pkgbuild_content: str,
+    pkgname: str,
+    new_ver: str
+) -> str | None:
+    """Download a URL, compute SHA256, inspect its archive contents, and clean up."""
+    try:
+        tmp = tempfile.NamedTemporaryFile(delete=False)
+        result = subprocess.run(
+            ['curl', '-sL', '-o', tmp.name, url],
+            capture_output=True, timeout=180
+        )
+        if result.returncode != 0:
+            os.unlink(tmp.name)
+            return None
+
+        h = hashlib.sha256()
+        with open(tmp.name, 'rb') as f:
+            for chunk in iter(lambda: f.read(65536), b''):
+                h.update(chunk)
+        digest = h.hexdigest()
+
+        # Run inspection and validation (fail-safe so inspection errors never drop checksum)
+        try:
+            inspect_and_validate_asset(
+                tmp.name, asset_name, pkgbuild_content, pkgname, new_ver
+            )
+        except Exception as err:
+            print(f"  Warning: Asset inspection encountered an issue: {err}", file=sys.stderr)
+
+        os.unlink(tmp.name)
+        return digest
+    except Exception as e:
+        print(f"  Error downloading {url}: {e}", file=sys.stderr)
+        return None
 
 
 def compute_sha256(url: str) -> str | None:
@@ -287,14 +548,28 @@ def update_package(pkgdir: str, new_ver: str):
     else:
         for suffix, entries in info['resolved_groups'].items():
             for pattern in entries:
-                url = pattern.split('::', 1)[1] if '::' in pattern else pattern
+                local_name = None
+                if '::' in pattern:
+                    local_name, url = pattern.split('::', 1)
+                else:
+                    url = pattern
                 if url.startswith('git+'):
                     continue  # Can't download git repos for sha256
-                if 'github.com' in url and '/releases/download/' in url:
+                if (url.startswith('https://') or url.startswith('http://')) and (
+                    '/releases/download/' in url or
+                    '/archive/' in url or
+                    'releases' in url or
+                    url.endswith(('.deb', '.tar.gz', '.tar.xz', '.tgz', '.zip', '.tar.zst'))
+                ):
                     url = url.replace(old_ver, new_ver)
+                    if local_name:
+                        local_name = local_name.replace(old_ver, new_ver)
+                    asset_name = local_name or url.split('/')[-1]
                     label = suffix or 'default'
                     print(f"  Downloading [{label}] {url}...")
-                    digest = compute_sha256(url)
+                    digest = download_and_hash_asset(
+                        url, asset_name, info['content'], info['pkgname'], new_ver
+                    )
                     if digest:
                         print(f"  sha256 [{label}] = {digest}")
                         new_hashes[suffix] = digest

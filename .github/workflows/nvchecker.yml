@@ -95,10 +95,14 @@ jobs:
       - name: Update packages
         if: steps.detect.outputs.UPDATES_FOUND == 'true'
         run: |
+          rm -f /tmp/package_inspections.md
           while IFS=: read -r pkg ver; do
             echo "Updating ${pkg} to ${ver}"
             python3 scripts/update-package.py "${pkg}" "${ver}"
           done < /tmp/version_map.txt
+          if [ -s /tmp/package_inspections.md ] && [ -n "$GITHUB_STEP_SUMMARY" ]; then
+            cat /tmp/package_inspections.md >> "$GITHUB_STEP_SUMMARY"
+          fi
 
       - name: Commit and push
         if: steps.detect.outputs.UPDATES_FOUND == 'true'
@@ -134,12 +138,28 @@ jobs:
             echo '```diff'
             cat /tmp/diff_output.txt
             echo '```'
+            if [ -s /tmp/package_inspections.md ]; then
+              echo ""
+              echo "### Asset inspection & validation"
+              cat /tmp/package_inspections.md
+            fi
           } > /tmp/pr_body.txt
+
+          current_user=$(gh api user -q .login 2>/dev/null || echo "")
+          repo_owner="${{ github.repository_owner }}"
+          edit_reviewer_args=()
+          create_reviewer_args=()
+          if [ -n "$repo_owner" ] && [ "$current_user" != "$repo_owner" ]; then
+            edit_reviewer_args=(--add-reviewer "$repo_owner")
+            create_reviewer_args=(--reviewer "$repo_owner")
+          fi
 
           pr_number=$(gh pr list --head auto-update --state open --json number --jq '.[0].number')
           if [ -n "$pr_number" ] && [ "$pr_number" != "null" ]; then
             echo "Updating description for existing PR #${pr_number}"
-            gh pr edit "$pr_number" --body-file /tmp/pr_body.txt
+            gh pr edit "$pr_number" \
+              --body-file /tmp/pr_body.txt \
+              "${edit_reviewer_args[@]}"
           else
             echo "Creating new PR"
             gh pr create \
@@ -147,5 +167,6 @@ jobs:
               --body-file /tmp/pr_body.txt \
               --head auto-update \
               --base main \
-              --label dependencies,automated
+              --label dependencies,automated \
+              "${create_reviewer_args[@]}"
           fi
