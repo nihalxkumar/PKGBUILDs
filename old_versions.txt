@@ -13,10 +13,10 @@
       "revision": "ce18e9c76ba13eea57990990ba59a91e770aa7dd"
     },
     "ensu-bin": {
-      "version": "0.1.20",
-      "gitref": "refs/tags/ensu-v0.1.20",
-      "revision": "a741ba42b5d11adc3bf797d80a339e5195cec285",
-      "url": "https://github.com/ente-io/ente/releases/tag/ensu-v0.1.20"
+      "version": "0.1.21",
+      "gitref": "refs/tags/ensu-v0.1.21",
+      "revision": "1cc4efed0ae3c5aa3c4b4270cfd50cb1821ba620",
+      "url": "https://github.com/ente-io/ente/releases/tag/ensu-v0.1.21"
     },
     "onionmine": {
       "version": "1.1.0",
