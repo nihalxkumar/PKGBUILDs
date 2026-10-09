@@ -2,15 +2,11 @@
 oldver = "old_versions.txt"
 newver = "old_versions.txt"
 
+# Do not track unpinned VCS packages that derive pkgver() at build time. Their
+# source revision does not change packaging and would only create no-op PRs.
 [contextpilot]
 source = "github"
 github = "krshrimali/context-pilot-rs"
-
-[contextpilot-git]
-source = "git"
-git = "https://github.com/krshrimali/context-pilot-rs.git"
-use_commit = true
-branch = "main"
 
 [terminal-rain-lightning]
 source = "github"
@@ -24,12 +20,6 @@ github = "mmpx12/twitter-media-downloader"
 # falls back to a commit-date version (e.g. 20260106.142427) for which no
 # release assets exist, so the generated source URLs 404.
 use_latest_release = true
-
-[twmd-git]
-source = "github"
-github = "mmpx12/twitter-media-downloader"
-use_commit = true
-branch = "master"
 
 [smithery-cli]
 source = "github"
@@ -58,20 +48,8 @@ source = "git"
 git = "https://gitlab.torproject.org/tpo/onion-services/onionmine.git"
 tag_strip = "v"
 
-[onionmine-git]
-source = "git"
-git = "https://gitlab.torproject.org/tpo/onion-services/onionmine.git"
-use_commit = true
-branch = "main"
-
 [onionspray]
 source = "git"
 git = "https://gitlab.torproject.org/tpo/onion-services/onionspray.git"
 use_max_tag = true
 tag_strip = "v"
-
-[onionspray-git]
-source = "git"
-git = "https://gitlab.torproject.org/tpo/onion-services/onionspray.git"
-use_commit = true
-branch = "main"

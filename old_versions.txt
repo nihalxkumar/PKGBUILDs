@@ -7,11 +7,6 @@
       "url": "https://github.com/krshrimali/context-pilot-rs/commit/ce18e9c76ba13eea57990990ba59a91e770aa7dd",
       "revision_creation_time": "2025-10-18T08:26:43Z"
     },
-    "contextpilot-git": {
-      "version": "ce18e9c76ba13eea57990990ba59a91e770aa7dd",
-      "gitref": "refs/heads/main",
-      "revision": "ce18e9c76ba13eea57990990ba59a91e770aa7dd"
-    },
     "ensu-bin": {
       "version": "0.1.21",
       "gitref": "refs/tags/ensu-v0.1.21",
@@ -23,20 +18,10 @@
       "gitref": "refs/tags/1.1.0",
       "revision": "4192c3af6abdee514ceb6f493e0c19504e1fc892"
     },
-    "onionmine-git": {
-      "version": "0f3af8c28d37fc4b3f1d72477d28814b91de9729",
-      "gitref": "refs/heads/main",
-      "revision": "0f3af8c28d37fc4b3f1d72477d28814b91de9729"
-    },
     "onionspray": {
       "version": "v1.8.3",
       "gitref": "refs/tags/v1.8.3",
       "revision": "264af5e2191607a5eae6c0bb5318ec96ee328242"
-    },
-    "onionspray-git": {
-      "version": "afcbfc49fe0873e0a783287816c07164563ebe18",
-      "gitref": "refs/heads/main",
-      "revision": "afcbfc49fe0873e0a783287816c07164563ebe18"
     },
     "relax-player": {
       "version": "20260105.075002",
@@ -61,12 +46,6 @@
       "gitref": "refs/tags/v1.15.0",
       "url": "https://github.com/mmpx12/twitter-media-downloader/releases/tag/v1.15.0",
       "creation_time": "2026-01-06T14:27:42Z"
-    },
-    "twmd-git": {
-      "version": "20260106.142427",
-      "revision": "96f7ecc3fdbca7fc5cb19eccb482f5114d965ff6",
-      "url": "https://github.com/mmpx12/twitter-media-downloader/commit/96f7ecc3fdbca7fc5cb19eccb482f5114d965ff6",
-      "revision_creation_time": "2026-01-06T14:24:27Z"
     }
   }
 }
