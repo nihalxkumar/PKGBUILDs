@@ -19,9 +19,9 @@
       "revision": "4192c3af6abdee514ceb6f493e0c19504e1fc892"
     },
     "onionspray": {
-      "version": "v1.8.3",
-      "gitref": "refs/tags/v1.8.3",
-      "revision": "264af5e2191607a5eae6c0bb5318ec96ee328242"
+      "version": "v1.8.4",
+      "gitref": "refs/tags/v1.8.4",
+      "revision": "02f96e1c1d7130c78426a2bd2b3cd392e822df11"
     },
     "relax-player": {
       "version": "20260105.075002",
