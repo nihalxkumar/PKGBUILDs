@@ -34,9 +34,9 @@
       "revision": "264af5e2191607a5eae6c0bb5318ec96ee328242"
     },
     "onionspray-git": {
-      "version": "afcbfc49fe0873e0a783287816c07164563ebe18",
+      "version": "cea786525954d8bb746a813396e0062ed5d4f8ef",
       "gitref": "refs/heads/main",
-      "revision": "afcbfc49fe0873e0a783287816c07164563ebe18"
+      "revision": "cea786525954d8bb746a813396e0062ed5d4f8ef"
     },
     "relax-player": {
       "version": "20260105.075002",
