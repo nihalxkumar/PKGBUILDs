@@ -103,17 +103,7 @@ jobs:
               echo "${pkg}:${ver}" >> /tmp/successfully_updated.txt
             else
               echo "::warning title=Update failed::Failed to update ${pkg} to ${ver}"
-              python3 -c "
-import json
-with open('/tmp/old_versions.txt') as f_old, open('old_versions.txt') as f_new:
-    old_data = json.load(f_old)
-    new_data = json.load(f_new)
-if '${pkg}' in old_data.get('data', {}):
-    new_data.setdefault('data', {})['${pkg}'] = old_data['data']['${pkg}']
-    with open('old_versions.txt', 'w') as f_out:
-        json.dump(new_data, f_out, indent=2)
-        f_out.write('\n')
-"
+              python3 -c "import json, sys; p, f1, f2 = sys.argv[1:4]; o = json.load(open(f1)).get('data', {}); n = json.load(open(f2)); p in o and n.get('data', {}).__setitem__(p, o[p]); open(f2, 'w').write(json.dumps(n, indent=2) + '\n')" "${pkg}" /tmp/old_versions.txt old_versions.txt
             fi
           done < /tmp/version_map.txt
           mv /tmp/successfully_updated.txt /tmp/version_map.txt 2>/dev/null || touch /tmp/version_map.txt
