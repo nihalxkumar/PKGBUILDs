@@ -96,10 +96,27 @@ jobs:
         if: steps.detect.outputs.UPDATES_FOUND == 'true'
         run: |
           rm -f /tmp/package_inspections.md
+          rm -f /tmp/successfully_updated.txt
           while IFS=: read -r pkg ver; do
             echo "Updating ${pkg} to ${ver}"
-            python3 scripts/update-package.py "${pkg}" "${ver}"
+            if python3 scripts/update-package.py "${pkg}" "${ver}"; then
+              echo "${pkg}:${ver}" >> /tmp/successfully_updated.txt
+            else
+              echo "::warning title=Update failed::Failed to update ${pkg} to ${ver}"
+              python3 -c "
+import json
+with open('/tmp/old_versions.txt') as f_old, open('old_versions.txt') as f_new:
+    old_data = json.load(f_old)
+    new_data = json.load(f_new)
+if '${pkg}' in old_data.get('data', {}):
+    new_data.setdefault('data', {})['${pkg}'] = old_data['data']['${pkg}']
+    with open('old_versions.txt', 'w') as f_out:
+        json.dump(new_data, f_out, indent=2)
+        f_out.write('\n')
+"
+            fi
           done < /tmp/version_map.txt
+          mv /tmp/successfully_updated.txt /tmp/version_map.txt 2>/dev/null || touch /tmp/version_map.txt
           if [ -s /tmp/package_inspections.md ] && [ -n "$GITHUB_STEP_SUMMARY" ]; then
             cat /tmp/package_inspections.md >> "$GITHUB_STEP_SUMMARY"
           fi

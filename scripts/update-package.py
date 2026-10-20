@@ -372,7 +372,7 @@ def download_and_hash_asset(
     try:
         tmp = tempfile.NamedTemporaryFile(delete=False)
         result = subprocess.run(
-            ['curl', '-sL', '-o', tmp.name, url],
+            ['curl', '-sSfL', '-o', tmp.name, url],
             capture_output=True, timeout=180
         )
         if result.returncode != 0:
@@ -405,7 +405,7 @@ def compute_sha256(url: str) -> str | None:
     try:
         with tempfile.NamedTemporaryFile(delete=False) as tmp:
             result = subprocess.run(
-                ['curl', '-sL', '-o', tmp.name, url],
+                ['curl', '-sSfL', '-o', tmp.name, url],
                 capture_output=True, timeout=120
             )
             if result.returncode != 0:
@@ -574,12 +574,23 @@ def update_package(pkgdir: str, new_ver: str):
                         print(f"  sha256 [{label}] = {digest}")
                         new_hashes[suffix] = digest
                     else:
-                        print(f"  Warning: Could not compute sha256 for [{label}], leaving unchanged")
+                        print(f"  Error: Could not compute sha256 for [{label}]", file=sys.stderr)
                     break
             else:
                 continue
         if not new_hashes:
-            print(f"  Warning: No downloadable source URL found, cannot compute sha256")
+            print(f"  Error: No downloadable source URL found or download failed, cannot compute sha256", file=sys.stderr)
+            return False
+
+        # Verify that all groups with downloadable sources succeeded
+        for suffix, entries in info['resolved_groups'].items():
+            has_downloadable = any(
+                not p.startswith('git+') and (p.startswith('https://') or p.startswith('http://'))
+                for p in entries
+            )
+            if has_downloadable and suffix not in new_hashes:
+                print(f"  Error: Missing sha256 for [{suffix or 'default'}], aborting update", file=sys.stderr)
+                return False
 
     # Read and update PKGBUILD
     content = Path(pkgbuild_path).read_text()

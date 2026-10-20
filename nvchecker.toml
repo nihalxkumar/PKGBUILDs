@@ -4,14 +4,11 @@ newver = "old_versions.txt"
 
 # Do not track unpinned VCS packages that derive pkgver() at build time. Their
 # source revision does not change packaging and would only create no-op PRs.
+
 [contextpilot]
 source = "github"
 github = "krshrimali/context-pilot-rs"
-
-[terminal-rain-lightning]
-source = "github"
-github = "rmaake1/terminal-rain-lightning"
-pypi = "terminal-rain-lightning"
+use_latest_release = true
 
 [twmd-bin]
 source = "github"
@@ -42,6 +39,9 @@ prefix = "ensu-v"
 [relax-player]
 source = "github"
 github = "ebithril/relax-player"
+# Track the latest GitHub release (e.g. v1.1.0). Without this nvchecker
+# falls back to a commit-date version for which no release assets exist.
+use_latest_release = true
 
 [onionmine]
 source = "git"
