@@ -24,10 +24,10 @@
       "revision": "02f96e1c1d7130c78426a2bd2b3cd392e822df11"
     },
     "relax-player": {
-      "version": "20260105.075002",
-      "revision": "6d3b48ad99cb5c201e3631c6d78bf91f9e0397a5",
-      "url": "https://github.com/ebithril/relax-player/commit/6d3b48ad99cb5c201e3631c6d78bf91f9e0397a5",
-      "revision_creation_time": "2026-01-05T07:50:02Z"
+      "version": "20261020.033039",
+      "revision": "52ebc6588dbc27a3f52b2347fc090ccb060ec7cf",
+      "url": "https://github.com/ebithril/relax-player/commit/52ebc6588dbc27a3f52b2347fc090ccb060ec7cf",
+      "revision_creation_time": "2026-10-20T03:30:39Z"
     },
     "smithery-cli": {
       "version": "v1.2.0",

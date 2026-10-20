@@ -1,6 +1,6 @@
 # Maintainer: Nihal Kumar <2tv8xupqg at mozmail dot com>
 pkgname=relax-player
-pkgver=1.1.0
+pkgver=20261020.033039
 pkgrel=1
 pkgdesc="Ambient sound player (rain, thunder, campfire) with an alsamixer-style TUI"
 arch=('x86_64')
@@ -11,7 +11,7 @@ makedepends=('rust' 'cargo' 'pkgconf' 'openssl')
 provides=()
 conflicts=()
 source=("https://github.com/ebithril/relax-player/archive/refs/tags/v${pkgver}.tar.gz")
-sha256sums=('7d123fc2550a2806a96dc4790a56f334c94e5fb83a3b1acf89397b5562b9a40a')
+sha256sums=('d5558cd419c8d46bdc958064cb97f963d1ea793866414c025906ec15033512ed')
 
 build() {
   cd "${srcdir}/${pkgname}-${pkgver}" || exit 1
