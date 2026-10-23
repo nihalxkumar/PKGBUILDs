@@ -101,33 +101,38 @@ jobs:
             echo "Updating ${pkg} to ${ver}"
             if python3 scripts/update-package.py "${pkg}" "${ver}"; then
               echo "${pkg}:${ver}" >> /tmp/successfully_updated.txt
+              # One commit per package. aurpublish pushes the subtree of commits
+              # that touched a package dir, so this message becomes the AUR log
+              # entry -- the classic "upgpkg: <pkgname> <pkgver>-<pkgrel>".
+              pkgver=$(sed -n 's/^[[:space:]]*pkgver = //p' "${pkg}/.SRCINFO" | head -n1)
+              pkgrel=$(sed -n 's/^[[:space:]]*pkgrel = //p' "${pkg}/.SRCINFO" | head -n1)
+              git add "${pkg}"
+              git commit -q -m "upgpkg: ${pkg} ${pkgver}-${pkgrel}"
             else
               echo "::warning title=Update failed::Failed to update ${pkg} to ${ver}"
               python3 -c "import json, sys; p, f1, f2 = sys.argv[1:4]; o = json.load(open(f1)).get('data', {}); n = json.load(open(f2)); p in o and n.get('data', {}).__setitem__(p, o[p]); open(f2, 'w').write(json.dumps(n, indent=2) + '\n')" "${pkg}" /tmp/old_versions.txt old_versions.txt
+              # Drop any half-written edits so a failed update never ships.
+              git checkout -- "${pkg}"
             fi
           done < /tmp/version_map.txt
+          # Bookkeeping is committed last, so versions of packages that failed
+          # above (and were rolled back) are not recorded as updated.
+          if ! git diff --quiet -- old_versions.txt; then
+            git add old_versions.txt
+            git commit -q -m "chore(nvchecker): record updated versions"
+          fi
           mv /tmp/successfully_updated.txt /tmp/version_map.txt 2>/dev/null || touch /tmp/version_map.txt
           if [ -s /tmp/package_inspections.md ] && [ -n "$GITHUB_STEP_SUMMARY" ]; then
             cat /tmp/package_inspections.md >> "$GITHUB_STEP_SUMMARY"
           fi
 
-      - name: Commit and push
+      - name: Push update branch
         if: steps.detect.outputs.UPDATES_FOUND == 'true'
         run: |
-          git add -A
-          if git diff --cached --quiet; then
+          if git diff --quiet origin/main..HEAD; then
             echo "No changes to commit"
             exit 0
           fi
-          {
-            echo "auto: update packages"
-            echo ""
-            echo "Updated packages:"
-            while IFS=: read -r pkg ver; do
-              echo "- ${pkg}: ${ver}"
-            done < /tmp/version_map.txt
-          } > /tmp/commit_msg.txt
-          git commit -F /tmp/commit_msg.txt
           git push --force origin auto-update
 
       - name: Create or update pull request
