@@ -8,10 +8,10 @@
       "creation_time": "2025-07-29T14:57:57Z"
     },
     "ensu-bin": {
-      "version": "0.1.21",
-      "gitref": "refs/tags/ensu-v0.1.21",
-      "revision": "1cc4efed0ae3c5aa3c4b4270cfd50cb1821ba620",
-      "url": "https://github.com/ente-io/ente/releases/tag/ensu-v0.1.21"
+      "version": "0.1.22",
+      "gitref": "refs/tags/ensu-v0.1.22",
+      "revision": "25e02dd3509eadb6d82ee946f243e4fd16218bb4",
+      "url": "https://github.com/ente-io/ente/releases/tag/ensu-v0.1.22"
     },
     "onionmine": {
       "version": "1.1.0",
