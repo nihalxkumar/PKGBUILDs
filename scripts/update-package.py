@@ -535,7 +535,7 @@ def update_package(pkgdir: str, new_ver: str):
     # Skip packages with auto-generated pkgver()
     if info['has_pkgver_func']:
         print(f"  Package has pkgver() function, version is auto-generated")
-        print(f"  Only updating tracked version in old_versions.txt")
+        print(f"  Only updating tracked version in old_versions.json")
         return True
 
     # Determine new sha256sums, one per arch suffix. Arch-specific source

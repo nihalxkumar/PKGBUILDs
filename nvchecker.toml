@@ -1,6 +1,6 @@
 [__config__]
-oldver = "old_versions.txt"
-newver = "old_versions.txt"
+oldver = "old_versions.json"
+newver = "old_versions.json"
 
 # Do not track unpinned VCS packages that derive pkgver() at build time. Their
 # source revision does not change packaging and would only create no-op PRs.

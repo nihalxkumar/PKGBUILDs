@@ -38,7 +38,7 @@ jobs:
           KEYEOF
 
       - name: Save current versions
-        run: cp old_versions.txt /tmp/old_versions.txt
+        run: cp old_versions.json /tmp/old_versions.json
 
       - name: Run nvchecker
         run: nvchecker -c nvchecker.toml --keyfile /tmp/keyfile.toml
@@ -47,7 +47,7 @@ jobs:
         id: detect
         run: |
           # Keep a human-readable diff for the PR body.
-          diff -u /tmp/old_versions.txt old_versions.txt > /tmp/diff_output.txt || true
+          diff -u /tmp/old_versions.json old_versions.json > /tmp/diff_output.txt || true
           # Compare the two nvchecker JSON files directly. Relying on the unified
           # diff is fragile: on a version bump only the "version" line is marked
           # with "+", while the package-name line stays as unchanged context, so
@@ -61,8 +61,8 @@ jobs:
               with open(path) as f:
                   return json.load(f).get("data", {})
 
-          old = load("/tmp/old_versions.txt")
-          new = load("old_versions.txt")
+          old = load("/tmp/old_versions.json")
+          new = load("old_versions.json")
 
           changed = []
           for pkg, info in new.items():
@@ -110,15 +110,15 @@ jobs:
               git commit -q -m "upgpkg: ${pkg} ${pkgver}-${pkgrel}"
             else
               echo "::warning title=Update failed::Failed to update ${pkg} to ${ver}"
-              python3 -c "import json, sys; p, f1, f2 = sys.argv[1:4]; o = json.load(open(f1)).get('data', {}); n = json.load(open(f2)); p in o and n.get('data', {}).__setitem__(p, o[p]); open(f2, 'w').write(json.dumps(n, indent=2) + '\n')" "${pkg}" /tmp/old_versions.txt old_versions.txt
+              python3 -c "import json, sys; p, f1, f2 = sys.argv[1:4]; o = json.load(open(f1)).get('data', {}); n = json.load(open(f2)); p in o and n.get('data', {}).__setitem__(p, o[p]); open(f2, 'w').write(json.dumps(n, indent=2) + '\n')" "${pkg}" /tmp/old_versions.json old_versions.json
               # Drop any half-written edits so a failed update never ships.
               git checkout -- "${pkg}"
             fi
           done < /tmp/version_map.txt
           # Bookkeeping is committed last, so versions of packages that failed
           # above (and were rolled back) are not recorded as updated.
-          if ! git diff --quiet -- old_versions.txt; then
-            git add old_versions.txt
+          if ! git diff --quiet -- old_versions.json; then
+            git add old_versions.json
             git commit -q -m "chore(nvchecker): record updated versions"
           fi
           mv /tmp/successfully_updated.txt /tmp/version_map.txt 2>/dev/null || touch /tmp/version_map.txt
